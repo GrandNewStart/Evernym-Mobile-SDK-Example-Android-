@@ -28,10 +28,11 @@ object QRHandler {
             handleProofRequest(code.trim().split(";")[1])
             return
         }
-        MainActivity.instance.setMessage("Invitation fetching...")
+
+        MainActivity.instance.setMessage("Fetching invitation...")
         InvitationHandler.getInvitation(code) { invitation, error ->
             invitation?.let { invitation ->
-                MainActivity.instance.setMessage("Connection fetching...")
+                MainActivity.instance.setMessage("Fetching connection...")
                 ConnectionHandler.getConnection(invitation) { connection, error ->
                     connection?.let { connection ->
                         MainActivity.instance.setMessage("Connecting...")
@@ -41,9 +42,9 @@ object QRHandler {
                                 DIDConnection.add(updatedConnection)
                                 invitation.attachment?.let { attachment ->
                                     if (attachment.isCredentialAttachment()) {
-                                        MainActivity.instance.setMessage("Credential fetching...")
+                                        MainActivity.instance.setMessage("Fetching credential...")
                                         CredentialHandler.getCredential(updatedConnection, attachment) { credential, error ->
-                                            MainActivity.instance.setMessage("Credential accepting...")
+                                            MainActivity.instance.setMessage("Accepting credential...")
                                             credential?.let { credential ->
                                                 CredentialHandler.acceptCredential(credential) { updatedCredential, error ->
                                                     updatedCredential?.let {
@@ -65,6 +66,7 @@ object QRHandler {
     }
 
     private fun handleConnection(code: String) {
+        MainActivity.instance.setMessage("Fetching invitation...")
         InvitationHandler.getInvitation(code) { invitation, error1 ->
             error1?.let {
                 Log.e("QRHandler", "handleConnection: (1) $it")
@@ -72,6 +74,7 @@ object QRHandler {
                 MainActivity.instance.showLoadingScreen(false)
                 return@getInvitation
             }
+            MainActivity.instance.setMessage("Fetching connection...")
             ConnectionHandler.getConnection(invitation!!) { connection, error2 ->
                 error2?.let {
                     Log.e("QRHandler", "handleConnection: (2) $it")
@@ -93,6 +96,7 @@ object QRHandler {
     }
 
     private fun handleLogIn(code: String) {
+        MainActivity.instance.setMessage("Fetching invitation...")
         InvitationHandler.getInvitation(code) { invitation, error1 ->
             error1?.let {
                 Log.e("QRHandler", "handleLogIn: (1) $it")
@@ -100,6 +104,7 @@ object QRHandler {
                 MainActivity.instance.showLoadingScreen(false)
                 return@getInvitation
             }
+            MainActivity.instance.setMessage("Checking existing connection...")
             invitation!!.getExistingConnection { existingConnection, error2 ->
                 error2?.let {
                     Log.e("QRHandler", "handleLogIn: (2) $it")
@@ -111,6 +116,7 @@ object QRHandler {
                     MainActivity.instance.setMessage("No existing connection. Unable to log in.")
                     MainActivity.instance.showLoadingScreen(false)
                 } else {
+                    MainActivity.instance.setMessage("Fetching connection...")
                     ConnectionHandler.getConnection(invitation) { connection, error3 ->
                         error3?.let {
                             Log.e("QRHandler", "handleLogIn: (3) $it")
@@ -119,6 +125,7 @@ object QRHandler {
                             return@getConnection
                         }
                         DIDConnection.add(connection!!)
+                        MainActivity.instance.setMessage("Connecting...")
                         ConnectionHandler.acceptConnection(connection) { updatedConnection, error4 ->
                             error4?.let {
                                 Log.e("QRHandler", "handleLogIn: (4) $it")
@@ -136,6 +143,7 @@ object QRHandler {
     }
 
     private fun handleCredentialOffer(code: String) {
+        MainActivity.instance.setMessage("Fetching invitation...")
         InvitationHandler.getInvitation(code) { invitation, error1 ->
             error1?.let {
                 Log.e("QRHandler", "handleCredentialOffer: (1) $it")
@@ -143,6 +151,7 @@ object QRHandler {
                 MainActivity.instance.showLoadingScreen(false)
                 return@getInvitation
             }
+            MainActivity.instance.setMessage("Checking existing connection...")
             invitation!!.getExistingConnection { existingConnection, error2 ->
                 error2?.let {
                     Log.e("QRHandler", "handleLogIn: (2) $it")
@@ -161,6 +170,7 @@ object QRHandler {
                     MainActivity.instance.showLoadingScreen(false)
                     return@getExistingConnection
                 }
+                MainActivity.instance.setMessage("Fetching credential...")
                 CredentialHandler.getCredential(existingConnection, invitation.attachment!!) { credential, error3 ->
                     error3?.let {
                         Log.e("QRHandler", "handleLogIn: (3) $it")

@@ -4,9 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.ade.evernym.sdk.SDKInitialization
-import com.evernym.sdk.vcx.VcxException
-import org.json.JSONArray
-import org.json.JSONObject
 
 class App: Application() {
 
