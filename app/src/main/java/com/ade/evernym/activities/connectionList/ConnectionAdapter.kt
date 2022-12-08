@@ -18,8 +18,11 @@ class ConnectionAdapter : RecyclerView.Adapter<ConnectionAdapter.ViewHolder>() {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(position: Int) {
-            itemView.findViewById<TextView>(R.id.itemTextView).text =
-                list[position].name.handleBase64Scheme()
+            itemView.findViewById<TextView>(R.id.itemTextView).apply {
+                val connection = list[position]
+                text = connection.name.handleBase64Scheme()
+                setTextColor(resources.getColor(if (connection.status == "pending") R.color.gray else R.color.black, null))
+            }
             Glide.with(itemView)
                 .load(list[position].logo)
                 .placeholder(R.drawable.ic_baseline_image_24)

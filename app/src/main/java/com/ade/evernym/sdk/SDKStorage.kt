@@ -12,6 +12,7 @@ import com.google.gson.reflect.TypeToken
 object SDKStorage {
 
     val connectionsLiveData = MutableLiveData<ArrayList<DIDConnection>>()
+    val credentialsLiveData = MutableLiveData<ArrayList<DIDCredential>>()
 
     var appProvisioned: Boolean
     get() {
@@ -79,6 +80,7 @@ object SDKStorage {
                 it.putString("credentials", json)
                 it.apply()
             }
+            credentialsLiveData.postValue(value)
         }
 
     fun removeVcxConfig() {

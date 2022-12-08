@@ -30,10 +30,16 @@ class ConnectionActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_connection)
-        intent.getStringExtra("id")?.let { this.connection = DIDConnection.getById(it) }
-        setupTextViews()
-        setupImageView()
-        setupButtons()
+        intent.getStringExtra("id")?.let {
+            DIDConnection.getById(it)?.let { connection ->
+                this.connection = connection
+                setupTextViews()
+                setupImageView()
+                setupButtons()
+                return
+            }
+            finish()
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -57,6 +63,7 @@ class ConnectionActivity : AppCompatActivity() {
         if (connection.status == "pending") {
             acceptButton.visibility = View.VISIBLE
             rejectButton.visibility = View.VISIBLE
+            rejectButton.text = "Reject"
             acceptButton.setOnClickListener {
                 showLoadingScreen(true)
                 ConnectionHandler.acceptConnection(connection) { updatedConnection, error ->
@@ -84,6 +91,7 @@ class ConnectionActivity : AppCompatActivity() {
         if (connection.status == "accepted") {
             acceptButton.visibility = View.GONE
             rejectButton.visibility = View.VISIBLE
+            rejectButton.text = "Disconnect"
             rejectButton.setOnClickListener {
                 runOnUiThread {
                     DIDConnection.delete(connection)

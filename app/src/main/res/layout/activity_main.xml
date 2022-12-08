@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="20dp"
         android:src="@drawable/ic_baseline_camera_alt_24"
-        app:backgroundTint="@color/purple_500"
+        app:backgroundTint="#6F00F8"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

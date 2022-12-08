@@ -52,39 +52,39 @@ data class DIDConnection(
         try {
             val newId = newInvitation.getString("@id")
             val storedId = storedInvitation.getString("@id")
-            Log.d("DIDConnection", "---> (1) $newId, $storedId")
-            return newId == storedId
+            if (newId == storedId) { return true }
         } catch(e: Exception) { }
         try {
             val newPublicDid = newInvitation.getString("public_did")
             val storedPublicDid = storedInvitation.getString("public_did")
-            Log.d("DIDConnection", "---> (2) $newPublicDid, $storedPublicDid")
-            return newPublicDid == storedPublicDid
+            if (newPublicDid == storedPublicDid) { return true }
         } catch(e: Exception) { }
         try {
             val newRecipientKey = newInvitation.getJSONArray("recipientKeys")[0].toString()
             val storedRecipientKey = storedInvitation.getJSONArray("recipientKeys")[0].toString()
-            Log.d("DIDConnection", "---> (3) $newRecipientKey, $storedRecipientKey")
-            return newRecipientKey == storedRecipientKey
+            if (newRecipientKey == storedRecipientKey) { return true }
         } catch(e: Exception) { }
         return false
     }
 
     companion object {
 
-        fun getById(id: String): DIDConnection {
+        fun getById(id: String): DIDConnection? {
             return SDKStorage.connections.first { it.id == id }
         }
 
-        fun getByPwDid(pwDid: String): DIDConnection {
+        fun getByPwDid(pwDid: String): DIDConnection? {
             return SDKStorage.connections.first { it.pwDid == pwDid }
         }
 
         fun add(connection: DIDConnection) {
             val connections = SDKStorage.connections
-            if (connections.map { it.id }.contains(connection.id)) {
-                update(connection)
-                return
+            for (i in 0 until connections.count()) {
+                if (connections[i].id == connection.id) {
+                    connections[i] = connection
+                    SDKStorage.connections = connections
+                    return
+                }
             }
             connections.add(connection)
             SDKStorage.connections = connections
@@ -93,9 +93,12 @@ data class DIDConnection(
         fun update(connection: DIDConnection) {
             val connections = SDKStorage.connections
             for (i in 0 until connections.count()) {
-                connections[i] = connection
+                if (connections[i].id == connection.id) {
+                    connections[i] = connection
+                    SDKStorage.connections = connections
+                    return
+                }
             }
-            SDKStorage.connections = connections
         }
 
         fun delete(connection: DIDConnection) {

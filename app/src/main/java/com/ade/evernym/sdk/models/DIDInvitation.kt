@@ -21,7 +21,10 @@ data class DIDInvitation (
     }
 
     fun delete(id: String) {
-        SDKStorage.invitations.removeIf { it.id == id }
+        SDKStorage.invitations.let {
+            it.removeIf { invitation -> invitation.id == id }
+            SDKStorage.invitations = it
+        }
     }
 
     fun getExistingConnection(completionHandler: (DIDConnection?, String?)->Unit) {

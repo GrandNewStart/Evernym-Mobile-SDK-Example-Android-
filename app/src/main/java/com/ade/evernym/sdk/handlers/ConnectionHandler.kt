@@ -139,6 +139,7 @@ object ConnectionHandler {
         val invitation = JSONObject(connection.invitation)
         val type = invitation.getString("@type")
         if (connection.status == "pending") {
+            Log.d("ConnectionHandler", "acceptConnection: (1-1) accepted connection")
             connect(connection) { updateConnection, error ->
                 error?.let {
                     Log.e("ConnectionHandler", "acceptConnection: (1) $it")
@@ -150,6 +151,7 @@ object ConnectionHandler {
             }
         }
         if (connection.status == "accepted") {
+            Log.d("ConnectionHandler", "acceptConnection: (1-2) reuse existing connection")
             if (type.contains("out-of-band")) {
                 reuse(connection) { updateConnection, error ->
                     error?.let {

@@ -1,17 +1,22 @@
 package com.ade.evernym
 
 import android.util.Log
-import android.widget.Toast
 import com.evernym.sdk.vcx.VcxException
-import okio.ByteString.Companion.decodeBase64
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.*
-import kotlin.collections.ArrayList
 
 fun JSONObject.getStringOptional(key: String): String? {
     return try {
         getString(key)
+    } catch(e: Exception) {
+        null
+    }
+}
+
+fun JSONObject.getJSONObjectOptional(key: String): JSONObject? {
+    return try {
+        getJSONObject(key)
     } catch(e: Exception) {
         null
     }
@@ -44,10 +49,11 @@ fun JSONArray.getJSONObjectOptional(index: Int): JSONObject? {
     }
 }
 
-fun VcxException.print(tag: String) {
+fun VcxException.print(tag: String, name: String) {
     Log.e(
         tag,
         """
+            $name
             ===VCX EXCEPTION===
                 CODE: ${this.sdkErrorCode}
                 MESSAGE: ${this.message}

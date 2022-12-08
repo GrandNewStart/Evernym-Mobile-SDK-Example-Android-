@@ -12,7 +12,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.ade.evernym.App
 import com.ade.evernym.QRHandler
 import com.ade.evernym.R
+import com.ade.evernym.activities.connection.ConnectionActivity
 import com.ade.evernym.activities.connectionList.ConnectionListActivity
+import com.ade.evernym.activities.credential.CredentialActivity
 import com.ade.evernym.activities.credentialList.CredentialListActivity
 import com.ade.evernym.sdk.models.DIDConnection
 import com.ade.evernym.sdk.models.DIDCredential
@@ -107,19 +109,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showLoadingScreen(show: Boolean) {
-        loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
+        runOnUiThread {
+            loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
+        }
     }
 
-    fun showConnections(connection: DIDConnection) {
+    fun showConnection(connection: DIDConnection) {
         Log.d("MainActivity", "showConnectionInvitation: ${connection.getDescription()}")
         setMessage("Ready")
-        startActivity(Intent(this@MainActivity, ConnectionListActivity::class.java))
+        runOnUiThread {
+            startActivity(
+                Intent(this@MainActivity, ConnectionActivity::class.java).apply {
+                    putExtra("id", connection.id)
+                }
+            )
+        }
     }
 
-    fun showCredentials(credential: DIDCredential) {
+    fun showCredential(credential: DIDCredential) {
         Log.d("MainActivity", "showConnectionInvitation: ${credential.getDescription()}")
         setMessage("Ready")
-        startActivity(Intent(this@MainActivity, CredentialListActivity::class.java))
+        runOnUiThread {
+            startActivity(
+                Intent(this@MainActivity, CredentialActivity::class.java).apply {
+                    putExtra("id", credential.id)
+                }
+            )
+        }
     }
 
 

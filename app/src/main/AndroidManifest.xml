@@ -46,6 +46,11 @@
             android:name=".activities.connection.ConnectionActivity"
             android:screenOrientation="portrait"
             tools:replace="screenOrientation" />
+
+        <activity
+            android:name=".activities.credential.CredentialActivity"
+            android:screenOrientation="portrait"
+            tools:replace="screenOrientation" />
     </application>
 
 </manifest>

@@ -1,7 +1,11 @@
 package com.ade.evernym.sdk
 
 import com.ade.evernym.App
-import java.io.*
+import com.ade.evernym.getJSONObjectOptional
+import com.ade.evernym.getStringOptional
+import org.json.JSONObject
+import java.io.File
+import java.io.FileOutputStream
 
 object SDKUtils {
 
@@ -21,6 +25,13 @@ object SDKUtils {
             ex.printStackTrace()
         }
         return file
+    }
+
+    fun getThreadId(message: JSONObject): String? {
+        message.getJSONObjectOptional("~thread")?.let { thread ->
+            return thread.getStringOptional("thid")
+        }
+        return message.getStringOptional("@id")
     }
 
 }

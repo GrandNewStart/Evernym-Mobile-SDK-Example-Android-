@@ -3,7 +3,6 @@ package com.ade.evernym.activities.credentialList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -19,8 +18,11 @@ class CredentialAdapter : RecyclerView.Adapter<CredentialAdapter.ViewHolder>() {
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(position: Int) {
-            itemView.findViewById<TextView>(R.id.itemTextView).text =
-                list[position].name.handleBase64Scheme()
+            itemView.findViewById<TextView>(R.id.itemTextView).apply {
+                val credential = list[position]
+                text = credential.name.handleBase64Scheme()
+                setTextColor(resources.getColor(if (credential.status == "pending") R.color.gray else R.color.black, null))
+            }
             Glide.with(itemView)
                 .load(list[position].connectionLogo)
                 .placeholder(R.drawable.ic_baseline_image_24)

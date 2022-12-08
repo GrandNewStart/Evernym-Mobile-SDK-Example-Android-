@@ -3,8 +3,10 @@ package com.ade.evernym
 import android.util.Log
 import com.ade.evernym.activities.main.MainActivity
 import com.ade.evernym.sdk.handlers.ConnectionHandler
+import com.ade.evernym.sdk.handlers.CredentialHandler
 import com.ade.evernym.sdk.handlers.InvitationHandler
 import com.ade.evernym.sdk.models.DIDConnection
+import com.ade.evernym.sdk.models.DIDCredential
 
 object QRHandler {
 
@@ -12,15 +14,53 @@ object QRHandler {
         MainActivity.instance.setMessage("processing...")
         if (code.startsWith("abcDidQrType=connect;")) {
             handleConnection(code.trim().split(";")[1])
+            return
         }
         if (code.startsWith("abcDidQrType=login;")) {
             handleLogIn(code.trim().split(";")[1])
+            return
         }
         if (code.startsWith("abcDidQrType=issue-cred;")) {
             handleCredentialOffer(code.trim().split(";")[1])
+            return
         }
         if (code.startsWith("abcDidQrType=submit-proof;")) {
             handleProofRequest(code.trim().split(";")[1])
+            return
+        }
+        MainActivity.instance.setMessage("Invitation fetching...")
+        InvitationHandler.getInvitation(code) { invitation, error ->
+            invitation?.let { invitation ->
+                MainActivity.instance.setMessage("Connection fetching...")
+                ConnectionHandler.getConnection(invitation) { connection, error ->
+                    connection?.let { connection ->
+                        MainActivity.instance.setMessage("Connecting...")
+                        ConnectionHandler.acceptConnection(connection) { updatedConnection, error ->
+                            updatedConnection?.let { updatedConnection ->
+                                MainActivity.instance.setMessage("Connected")
+                                DIDConnection.add(updatedConnection)
+                                invitation.attachment?.let { attachment ->
+                                    if (attachment.isCredentialAttachment()) {
+                                        MainActivity.instance.setMessage("Credential fetching...")
+                                        CredentialHandler.getCredential(updatedConnection, attachment) { credential, error ->
+                                            MainActivity.instance.setMessage("Credential accepting...")
+                                            credential?.let { credential ->
+                                                CredentialHandler.acceptCredential(credential) { updatedCredential, error ->
+                                                    updatedCredential?.let {
+                                                        DIDCredential.add(credential)
+                                                        MainActivity.instance.showLoadingScreen(false)
+                                                        MainActivity.instance.showCredential(credential)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -41,7 +81,7 @@ object QRHandler {
                 }
                 if (connection!!.pwDid.isEmpty()) {
                     DIDConnection.add(connection)
-                    MainActivity.instance.showConnections(connection)
+                    MainActivity.instance.showConnection(connection)
                     MainActivity.instance.showLoadingScreen(false)
                 } else {
                     DIDConnection.update(connection)
@@ -96,7 +136,44 @@ object QRHandler {
     }
 
     private fun handleCredentialOffer(code: String) {
-
+        InvitationHandler.getInvitation(code) { invitation, error1 ->
+            error1?.let {
+                Log.e("QRHandler", "handleCredentialOffer: (1) $it")
+                MainActivity.instance.setMessage("Failed to get invitation.")
+                MainActivity.instance.showLoadingScreen(false)
+                return@getInvitation
+            }
+            invitation!!.getExistingConnection { existingConnection, error2 ->
+                error2?.let {
+                    Log.e("QRHandler", "handleLogIn: (2) $it")
+                    MainActivity.instance.setMessage("Failed to get existing connection.")
+                    MainActivity.instance.showLoadingScreen(false)
+                    return@getExistingConnection
+                }
+                if (existingConnection == null) {
+                    MainActivity.instance.setMessage("No existing connection. Unable to receive credential.")
+                    MainActivity.instance.showLoadingScreen(false)
+                    return@getExistingConnection
+                }
+                if (invitation.attachment == null) {
+                    Log.e("QRHandler", "handleLogIn: (4) invitation has no attachment")
+                    MainActivity.instance.setMessage("Invitation has no attachment")
+                    MainActivity.instance.showLoadingScreen(false)
+                    return@getExistingConnection
+                }
+                CredentialHandler.getCredential(existingConnection, invitation.attachment!!) { credential, error3 ->
+                    error3?.let {
+                        Log.e("QRHandler", "handleLogIn: (3) $it")
+                        MainActivity.instance.setMessage("No existing connection. Unable to receive credential.")
+                        MainActivity.instance.showLoadingScreen(false)
+                        return@getCredential
+                    }
+                    DIDCredential.add(credential!!)
+                    MainActivity.instance.showLoadingScreen(false)
+                    MainActivity.instance.showCredential(credential)
+                }
+            }
+        }
     }
 
     private fun handleProofRequest(code: String) {

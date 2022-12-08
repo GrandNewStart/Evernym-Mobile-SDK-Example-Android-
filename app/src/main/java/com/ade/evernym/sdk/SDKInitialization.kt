@@ -1,7 +1,6 @@
 package com.ade.evernym.sdk
 
 import android.util.Log
-import com.ade.evernym.App
 import com.ade.evernym.print
 import com.evernym.sdk.vcx.VcxException
 import com.evernym.sdk.vcx.utils.UtilsApi
@@ -12,13 +11,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 import java.util.*
-import java.util.concurrent.Executors
 
 object SDKInitialization {
 
     fun initVCX(completionHandler: (String?)->Unit) {
         StorageUtils.configureStoragePermissions()
-//        Logger.configureLogger(App.shared)
         if (SDKStorage.appProvisioned) {
             Log.d("SDKInitialization", "initVCX: (1)")
             initialize(completionHandler)
@@ -96,7 +93,7 @@ object SDKInitialization {
                 completionHandler(null)
             }
         } catch(e: VcxException) {
-            e.print("SDKInitialization")
+            e.print("SDKInitialization", "initialize: (2)")
             SDKStorage.removeVcxConfig()
             SDKStorage.appProvisioned = false
             completionHandler(e.localizedMessage)
