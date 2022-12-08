@@ -165,22 +165,30 @@ object QRHandler {
                     return@getExistingConnection
                 }
                 if (invitation.attachment == null) {
-                    Log.e("QRHandler", "handleLogIn: (4) invitation has no attachment")
+                    Log.e("QRHandler", "handleLogIn: (3) invitation has no attachment")
                     MainActivity.instance.setMessage("Invitation has no attachment")
                     MainActivity.instance.showLoadingScreen(false)
                     return@getExistingConnection
                 }
-                MainActivity.instance.setMessage("Fetching credential...")
-                CredentialHandler.getCredential(existingConnection, invitation.attachment!!) { credential, error3 ->
-                    error3?.let {
-                        Log.e("QRHandler", "handleLogIn: (3) $it")
-                        MainActivity.instance.setMessage("No existing connection. Unable to receive credential.")
+                ConnectionHandler.getConnection(invitation) { connection, error ->
+                    error?.let {
+                        Log.e("QRHandler", "handleLogIn: (4) $it")
+                        MainActivity.instance.setMessage("Failed to get connection.")
                         MainActivity.instance.showLoadingScreen(false)
-                        return@getCredential
+                        return@getConnection
                     }
-                    DIDCredential.add(credential!!)
-                    MainActivity.instance.showLoadingScreen(false)
-                    MainActivity.instance.showCredential(credential)
+                    MainActivity.instance.setMessage("Fetching credential...")
+                    CredentialHandler.getCredential(connection!!, invitation.attachment!!) { credential, error3 ->
+                        error3?.let {
+                            Log.e("QRHandler", "handleLogIn: (3) $it")
+                            MainActivity.instance.setMessage("No existing connection. Unable to receive credential.")
+                            MainActivity.instance.showLoadingScreen(false)
+                            return@getCredential
+                        }
+                        DIDCredential.add(credential!!)
+                        MainActivity.instance.showLoadingScreen(false)
+                        MainActivity.instance.showCredential(credential)
+                    }
                 }
             }
         }

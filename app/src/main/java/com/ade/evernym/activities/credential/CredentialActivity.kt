@@ -45,28 +45,30 @@ class CredentialActivity: AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun setupTextViews() {
-        titleTextView.text = credential.name.handleBase64Scheme()
-        var detailText = ""
-        detailText += "ID: ${credential.id}\n\n"
-        detailText += "THREAD ID: ${credential.threadId}\n\n"
-        detailText += "REFERENT: ${credential.referent}\n\n"
-        detailText += "DEFINITION ID: ${credential.definitionId}\n\n"
-        detailText += "NAME: ${credential.name.handleBase64Scheme()}\n\n"
-        detailText += "CONNECTION ID: ${credential.connectionId}\n\n"
-        detailText += "CONNECTION NAME: ${credential.connectionName.handleBase64Scheme()}\n\n"
-        detailText += "STATUS: ${credential.status}\n\n"
-        detailText += "TIMESTAMP: ${credential.timeStamp}\n\n"
-        val attributes = JSONArray(credential.attributes)
-        for (i in 0 until attributes.length()) {
-            attributes.getJSONObject(i).apply {
-                val name = getStringOptional("name")
-                val value = getStringOptional("value")
-                if (name != null && value != null) {
-                    detailText += "${name.handleBase64Scheme()} : ${value.handleBase64Scheme()}\n"
+        runOnUiThread {
+            titleTextView.text = credential.name.handleBase64Scheme()
+            var detailText = ""
+            detailText += "ID: ${credential.id}\n\n"
+            detailText += "THREAD ID: ${credential.threadId}\n\n"
+            detailText += "REFERENT: ${credential.referent}\n\n"
+            detailText += "DEFINITION ID: ${credential.definitionId}\n\n"
+            detailText += "NAME: ${credential.name.handleBase64Scheme()}\n\n"
+            detailText += "CONNECTION ID: ${credential.connectionId}\n\n"
+            detailText += "CONNECTION NAME: ${credential.connectionName.handleBase64Scheme()}\n\n"
+            detailText += "STATUS: ${credential.status}\n\n"
+            detailText += "TIMESTAMP: ${credential.timeStamp}\n\n"
+            val attributes = JSONArray(credential.attributes)
+            for (i in 0 until attributes.length()) {
+                attributes.getJSONObject(i).apply {
+                    val name = getStringOptional("name")
+                    val value = getStringOptional("value")
+                    if (name != null && value != null) {
+                        detailText += "${name.handleBase64Scheme()} : ${value.handleBase64Scheme()}\n"
+                    }
                 }
             }
+            detailTextView.text = detailText
         }
-        detailTextView.text = detailText
     }
 
     private fun setupImageView() {
@@ -77,13 +79,13 @@ class CredentialActivity: AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        if (credential.status == "pending") {
-            acceptButton.visibility = View.VISIBLE
-            rejectButton.visibility = View.VISIBLE
-            acceptButton.text = "Accept"
-            rejectButton.text = "Reject"
-            acceptButton.setOnClickListener {
-                runOnUiThread{
+        runOnUiThread {
+            if (credential.status == "pending") {
+                acceptButton.visibility = View.VISIBLE
+                rejectButton.visibility = View.VISIBLE
+                acceptButton.text = "Accept"
+                rejectButton.text = "Reject"
+                acceptButton.setOnClickListener {
                     this.showLoadingScreen(true)
                     CredentialHandler.acceptCredential(this.credential) { credential, error ->
                         error?.let {
@@ -91,35 +93,36 @@ class CredentialActivity: AppCompatActivity() {
                             return@acceptCredential
                         }
                         this.credential = credential!!
+                        this.showLoadingScreen(false)
                         this.setupTextViews()
                         this.setupButtons()
                     }
                 }
-            }
-            rejectButton.setOnClickListener {
-                runOnUiThread {
-                    CredentialHandler.rejectCredential(this.credential) { error ->
-                        error?.let {
-                            Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                            return@rejectCredential
+                rejectButton.setOnClickListener {
+                    runOnUiThread {
+                        CredentialHandler.rejectCredential(this.credential) { error ->
+                            error?.let {
+                                Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
+                                return@rejectCredential
+                            }
+                            finish()
                         }
-                        finish()
                     }
                 }
             }
-        }
-        if (credential.status == "accepted") {
-            acceptButton.visibility = View.GONE
-            rejectButton.visibility = View.VISIBLE
-            rejectButton.text = "Delete"
-            rejectButton.setOnClickListener {
-                runOnUiThread{
-                    CredentialHandler.rejectCredential(this.credential) { error ->
-                        error?.let {
-                            Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                            return@rejectCredential
+            if (credential.status == "accepted") {
+                acceptButton.visibility = View.GONE
+                rejectButton.visibility = View.VISIBLE
+                rejectButton.text = "Delete"
+                rejectButton.setOnClickListener {
+                    runOnUiThread{
+                        CredentialHandler.rejectCredential(this.credential) { error ->
+                            error?.let {
+                                Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
+                                return@rejectCredential
+                            }
+                            finish()
                         }
-                        finish()
                     }
                 }
             }
@@ -127,7 +130,9 @@ class CredentialActivity: AppCompatActivity() {
     }
 
     private fun showLoadingScreen(show: Boolean) {
-        loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
+        runOnUiThread{
+            loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
+        }
     }
 
 

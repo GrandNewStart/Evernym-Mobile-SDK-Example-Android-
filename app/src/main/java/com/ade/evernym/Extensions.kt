@@ -70,3 +70,19 @@ fun String.handleBase64Scheme(): String {
         this
     }
 }
+
+fun printLog(tag: String, text: String) {
+    val MAX_LEN = 2000
+    val len = text.length
+    if (len > MAX_LEN) {
+        var idx = 0
+        var nextIdx = 0
+        while(idx < len) {
+            nextIdx += MAX_LEN
+            Log.d(tag, text.substring(idx, if (nextIdx > len) len else nextIdx))
+            idx = nextIdx
+        }
+    } else {
+        Log.d(tag, text)
+    }
+}

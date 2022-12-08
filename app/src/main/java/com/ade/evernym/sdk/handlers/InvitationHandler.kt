@@ -7,7 +7,6 @@ import com.ade.evernym.getJSONObjectOptional
 import com.ade.evernym.getStringOptional
 import com.ade.evernym.sdk.models.DIDInvitation
 import com.ade.evernym.sdk.models.DIDMessageAttachment
-import com.evernym.sdk.vcx.connection.ConnectionApi
 import com.evernym.sdk.vcx.utils.UtilsApi
 import org.json.JSONObject
 import java.util.*
@@ -19,11 +18,11 @@ object InvitationHandler {
             completionHandler(null, "url not valid")
             return
         }
-        UtilsApi.vcxResolveMessageByUrl(url).whenCompleteAsync { message, error ->
+        UtilsApi.vcxResolveMessageByUrl(url).whenComplete { message, error ->
             error?.let {
                 Log.e("InvitationHandler", "getInvitation: (1) ${it.localizedMessage}")
                 completionHandler(null, it.localizedMessage)
-                return@whenCompleteAsync
+                return@whenComplete
             }
             message?.let {
                 val messageJSON = JSONObject(it)
@@ -31,7 +30,7 @@ object InvitationHandler {
                 if (type == null) {
                     Log.e("InvitationHandler", "getInvitation: (2) no type info")
                     completionHandler(null, "no type info")
-                    return@whenCompleteAsync
+                    return@whenComplete
                 }
                 if (type.contains("invitation")) {
                     getAttachment(it) { attachment ->
@@ -45,7 +44,7 @@ object InvitationHandler {
                         completionHandler(invitation, null)
                         return@getAttachment
                     }
-                    return@whenCompleteAsync
+                    return@whenComplete
                 }
                 Log.e("InvitationHandler", "getInvitation: (3) message type - $type")
                 completionHandler(null, "message type - $type")
@@ -53,13 +52,13 @@ object InvitationHandler {
         }
     }
 
-    fun getAttachment(message: String, completionHandler: (attachment: DIDMessageAttachment?)->Unit) {
+    private fun getAttachment(message: String, completionHandler: (attachment: DIDMessageAttachment?)->Unit) {
         val messageJSON = JSONObject(message)
-        UtilsApi.vcxExtractAttachedMessage(message).whenCompleteAsync { extraction, error ->
+        UtilsApi.vcxExtractAttachedMessage(message).whenComplete { extraction, error ->
             error?.let {
                 Log.e("InvitationHandler", "getAttachment: (1) ${error.localizedMessage}")
                 completionHandler(null)
-                return@whenCompleteAsync
+                return@whenComplete
             }
             val attachment = JSONObject(extraction)
             val type = attachment.getStringOptional("@type")
@@ -69,7 +68,7 @@ object InvitationHandler {
             if (type == null || requestAttach == null || item == null || id == null) {
                 Log.e("InvitationHandler", "getAttachment: (2) ${error.localizedMessage}")
                 completionHandler(null)
-                return@whenCompleteAsync
+                return@whenComplete
             }
             attachment.put("@id", id)
             completionHandler(DIDMessageAttachment(type, attachment.toString()))

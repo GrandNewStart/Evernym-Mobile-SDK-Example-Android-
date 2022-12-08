@@ -16,6 +16,7 @@ import com.ade.evernym.activities.connection.ConnectionActivity
 import com.ade.evernym.activities.connectionList.ConnectionListActivity
 import com.ade.evernym.activities.credential.CredentialActivity
 import com.ade.evernym.activities.credentialList.CredentialListActivity
+import com.ade.evernym.printLog
 import com.ade.evernym.sdk.models.DIDConnection
 import com.ade.evernym.sdk.models.DIDCredential
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -127,7 +128,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showCredential(credential: DIDCredential) {
-        Log.d("MainActivity", "showConnectionInvitation: ${credential.getDescription()}")
+        printLog("MainActivity", "showConnectionInvitation: ${credential.getDescription()}")
         setMessage("Ready")
         runOnUiThread {
             startActivity(
