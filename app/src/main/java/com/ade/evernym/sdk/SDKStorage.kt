@@ -6,6 +6,7 @@ import com.ade.evernym.App
 import com.ade.evernym.sdk.models.DIDConnection
 import com.ade.evernym.sdk.models.DIDCredential
 import com.ade.evernym.sdk.models.DIDInvitation
+import com.ade.evernym.sdk.models.DIDProofRequest
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -13,6 +14,7 @@ object SDKStorage {
 
     val connectionsLiveData = MutableLiveData<ArrayList<DIDConnection>>()
     val credentialsLiveData = MutableLiveData<ArrayList<DIDCredential>>()
+    val proofRequestsLiveData = MutableLiveData<ArrayList<DIDProofRequest>>()
 
     var appProvisioned: Boolean
     get() {
@@ -81,6 +83,25 @@ object SDKStorage {
                 it.apply()
             }
             credentialsLiveData.postValue(value)
+        }
+
+    var proofRequests: ArrayList<DIDProofRequest>
+        get() {
+            val prefs = App.shared.getSharedPreferences("storage", MODE_PRIVATE)
+            val string = prefs.getString("proofRequests", "[]")
+            val gson = Gson()
+            val typeToken = object : TypeToken<ArrayList<DIDProofRequest>>(){}.type
+            return gson.fromJson(string, typeToken)
+        }
+        set(value) {
+            val prefs = App.shared.getSharedPreferences("storage", MODE_PRIVATE)
+            prefs.edit().let {
+                val gson = Gson()
+                val json = gson.toJson(value)
+                it.putString("proofRequests", json)
+                it.apply()
+            }
+            proofRequestsLiveData.postValue(value)
         }
 
     fun removeVcxConfig() {

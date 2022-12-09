@@ -17,7 +17,7 @@ data class DIDCredential(
     var connectionName: String,
     var connectionLogo: String,
     var status: String,
-    var timeStamp: String,
+    var createdAt: String,
     var serialized: String
 ) {
 
@@ -34,7 +34,7 @@ data class DIDCredential(
             CONNECTION NAME: $connectionName
             CONNECTION LOGO: $connectionLogo
             STATUS: $status
-            TIMESTAMP: $status
+            CREATED AT: $createdAt
             SERIALIZED: $serialized
             
         """.trimIndent()
@@ -122,25 +122,8 @@ data class DIDCredential(
             val credentials = SDKStorage.credentials
             for (i in 0 until credentials.count()) {
                 if (credentials[i].id == credential.id) {
-                    if (credential.status == "pending") {
-                        credentials.removeAt(i)
-                        SDKStorage.credentials = credentials
-                        return
-                    }
-                    credential.deserialize { handle ->
-                        handle?.let {
-                            Log.e("DIDCredential", "delete: (1) failed to deserialize credential")
-                            return@deserialize
-                        }
-                        CredentialApi.deleteCredential(handle!!).whenComplete { _, error ->
-                            error?.let {
-                                Log.e("DIDCredential", "delete: (2) ${it.localizedMessage}")
-                                return@whenComplete
-                            }
-                            credentials.removeAt(i)
-                            SDKStorage.credentials = credentials
-                        }
-                    }
+                    credentials.removeAt(i)
+                    SDKStorage.credentials = credentials
                     return
                 }
             }

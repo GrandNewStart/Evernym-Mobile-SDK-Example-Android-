@@ -40,16 +40,14 @@
                 android:layout_marginTop="20dp"
                 android:src="@drawable/ic_baseline_image_24" />
 
-            <TextView
-                android:id="@+id/detailTextView"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:lineSpacingExtra="10dp"
-                android:textAlignment="viewStart"
-                android:textColor="@color/black"
-                android:textSize="16sp"
-                tools:text="Hello World" />
+                tools:itemCount="6"
+                tools:listitem="@layout/item_main" />
 
         </LinearLayout>
 

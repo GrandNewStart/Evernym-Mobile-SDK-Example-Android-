@@ -51,6 +51,17 @@
             android:name=".activities.credential.CredentialActivity"
             android:screenOrientation="portrait"
             tools:replace="screenOrientation" />
+
+        <activity
+            android:name=".activities.proofRequestList.ProofRequestListActivity"
+            android:screenOrientation="portrait"
+            tools:replace="screenOrientation" />
+
+        <activity
+            android:name=".activities.proofRequest.ProofRequestActivity"
+            android:screenOrientation="portrait"
+            tools:replace="screenOrientation" />
+
     </application>
 
 </manifest>

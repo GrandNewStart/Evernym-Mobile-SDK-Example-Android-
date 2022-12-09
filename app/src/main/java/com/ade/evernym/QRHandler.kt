@@ -5,8 +5,10 @@ import com.ade.evernym.activities.main.MainActivity
 import com.ade.evernym.sdk.handlers.ConnectionHandler
 import com.ade.evernym.sdk.handlers.CredentialHandler
 import com.ade.evernym.sdk.handlers.InvitationHandler
+import com.ade.evernym.sdk.handlers.ProofRequestHandler
 import com.ade.evernym.sdk.models.DIDConnection
 import com.ade.evernym.sdk.models.DIDCredential
+import com.ade.evernym.sdk.models.DIDProofRequest
 
 object QRHandler {
 
@@ -29,40 +31,7 @@ object QRHandler {
             return
         }
 
-        MainActivity.instance.setMessage("Fetching invitation...")
-        InvitationHandler.getInvitation(code) { invitation, error ->
-            invitation?.let { invitation ->
-                MainActivity.instance.setMessage("Fetching connection...")
-                ConnectionHandler.getConnection(invitation) { connection, error ->
-                    connection?.let { connection ->
-                        MainActivity.instance.setMessage("Connecting...")
-                        ConnectionHandler.acceptConnection(connection) { updatedConnection, error ->
-                            updatedConnection?.let { updatedConnection ->
-                                MainActivity.instance.setMessage("Connected")
-                                DIDConnection.add(updatedConnection)
-                                invitation.attachment?.let { attachment ->
-                                    if (attachment.isCredentialAttachment()) {
-                                        MainActivity.instance.setMessage("Fetching credential...")
-                                        CredentialHandler.getCredential(updatedConnection, attachment) { credential, error ->
-                                            MainActivity.instance.setMessage("Accepting credential...")
-                                            credential?.let { credential ->
-                                                CredentialHandler.acceptCredential(credential) { updatedCredential, error ->
-                                                    updatedCredential?.let {
-                                                        DIDCredential.add(credential)
-                                                        MainActivity.instance.showLoadingScreen(false)
-                                                        MainActivity.instance.showCredential(credential)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        handleQRWithoutScheme(code.trim())
     }
 
     private fun handleConnection(code: String) {
@@ -126,7 +95,7 @@ object QRHandler {
                         }
                         DIDConnection.add(connection!!)
                         MainActivity.instance.setMessage("Connecting...")
-                        ConnectionHandler.acceptConnection(connection) { updatedConnection, error4 ->
+                        ConnectionHandler.acceptConnection(connection) { _, error4 ->
                             error4?.let {
                                 Log.e("QRHandler", "handleLogIn: (4) $it")
                                 MainActivity.instance.setMessage("Failed to connect.")
@@ -154,7 +123,7 @@ object QRHandler {
             MainActivity.instance.setMessage("Checking existing connection...")
             invitation!!.getExistingConnection { existingConnection, error2 ->
                 error2?.let {
-                    Log.e("QRHandler", "handleLogIn: (2) $it")
+                    Log.e("QRHandler", "handleCredentialOffer: (2) $it")
                     MainActivity.instance.setMessage("Failed to get existing connection.")
                     MainActivity.instance.showLoadingScreen(false)
                     return@getExistingConnection
@@ -165,14 +134,14 @@ object QRHandler {
                     return@getExistingConnection
                 }
                 if (invitation.attachment == null) {
-                    Log.e("QRHandler", "handleLogIn: (3) invitation has no attachment")
+                    Log.e("QRHandler", "handleCredentialOffer: (3) invitation has no attachment")
                     MainActivity.instance.setMessage("Invitation has no attachment")
                     MainActivity.instance.showLoadingScreen(false)
                     return@getExistingConnection
                 }
                 ConnectionHandler.getConnection(invitation) { connection, error ->
                     error?.let {
-                        Log.e("QRHandler", "handleLogIn: (4) $it")
+                        Log.e("QRHandler", "handleCredentialOffer: (4) $it")
                         MainActivity.instance.setMessage("Failed to get connection.")
                         MainActivity.instance.showLoadingScreen(false)
                         return@getConnection
@@ -180,8 +149,8 @@ object QRHandler {
                     MainActivity.instance.setMessage("Fetching credential...")
                     CredentialHandler.getCredential(connection!!, invitation.attachment!!) { credential, error3 ->
                         error3?.let {
-                            Log.e("QRHandler", "handleLogIn: (3) $it")
-                            MainActivity.instance.setMessage("No existing connection. Unable to receive credential.")
+                            Log.e("QRHandler", "handleCredentialOffer: (3) $it")
+                            MainActivity.instance.setMessage("Failed to fetch credential.")
                             MainActivity.instance.showLoadingScreen(false)
                             return@getCredential
                         }
@@ -195,7 +164,108 @@ object QRHandler {
     }
 
     private fun handleProofRequest(code: String) {
+        MainActivity.instance.setMessage("Fetching invitation...")
+        InvitationHandler.getInvitation(code) { invitation, error1 ->
+            error1?.let {
+                Log.e("QRHandler", "handleProofRequest: (1) $it")
+                MainActivity.instance.setMessage("Failed to get invitation.")
+                MainActivity.instance.showLoadingScreen(false)
+                return@getInvitation
+            }
+            MainActivity.instance.setMessage("Checking existing connection...")
+            invitation!!.getExistingConnection { existingConnection, error2 ->
+                error2?.let {
+                    Log.e("QRHandler", "handleProofRequest: (2) $it")
+                    MainActivity.instance.setMessage("Failed to get existing connection.")
+                    MainActivity.instance.showLoadingScreen(false)
+                    return@getExistingConnection
+                }
+                if (existingConnection == null) {
+                    MainActivity.instance.setMessage("No existing connection. Unable to receive credential.")
+                    MainActivity.instance.showLoadingScreen(false)
+                    return@getExistingConnection
+                }
+                if (invitation.attachment == null) {
+                    Log.e("QRHandler", "handleProofRequest: (3) invitation has no attachment")
+                    MainActivity.instance.setMessage("Invitation has no attachment")
+                    MainActivity.instance.showLoadingScreen(false)
+                    return@getExistingConnection
+                }
+                ConnectionHandler.getConnection(invitation) { connection, error ->
+                    error?.let {
+                        Log.e("QRHandler", "handleProofRequest: (4) $it")
+                        MainActivity.instance.setMessage("Failed to get connection.")
+                        MainActivity.instance.showLoadingScreen(false)
+                        return@getConnection
+                    }
+                    MainActivity.instance.setMessage("Fetching proof request...")
+                    ProofRequestHandler.getProofRequest(connection!!, invitation.attachment!!) { proofRequest, error3 ->
+                        error3?.let {
+                            Log.e("QRHandler", "handleProofRequest: (5) $it")
+                            MainActivity.instance.setMessage("Failed to fetch proof request.")
+                            MainActivity.instance.showLoadingScreen(false)
+                            return@getProofRequest
+                        }
+                        DIDProofRequest.add(proofRequest!!)
+                        MainActivity.instance.showLoadingScreen(false)
+                        MainActivity.instance.showProofRequest(proofRequest)
+                    }
+                }
+            }
+        }
+    }
 
+    private fun handleQRWithoutScheme(code: String) {
+        MainActivity.instance.showLoadingScreen(true)
+        MainActivity.instance.setMessage("Fetching invitation...")
+
+        InvitationHandler.getInvitation(code) { invitation, error1 ->
+            error1?.let {
+                MainActivity.instance.showLoadingScreen(false)
+                MainActivity.instance.setMessage("Invitation fetch failed")
+                return@getInvitation
+            }
+
+            MainActivity.instance.setMessage("Fetching connection...")
+            ConnectionHandler.getConnection(invitation!!) { connection, error2 ->
+                error2?.let {
+                    MainActivity.instance.showLoadingScreen(false)
+                    MainActivity.instance.setMessage("Connection fetch failed")
+                    return@getConnection
+                }
+                if (invitation.attachment == null) {
+                    MainActivity.instance.showLoadingScreen(false)
+                    MainActivity.instance.showConnection(connection!!)
+                    return@getConnection
+                }
+                if (invitation.attachment!!.isCredentialAttachment()) {
+                    MainActivity.instance.setMessage("Fetching credential...")
+                    CredentialHandler.getCredential(connection!!, invitation.attachment!!) { credential, error3 ->
+                        error3?.let {
+                            MainActivity.instance.showLoadingScreen(false)
+                            MainActivity.instance.setMessage("Credential fetch failed")
+                            return@getCredential
+                        }
+                        DIDCredential.add(credential!!)
+                        MainActivity.instance.showLoadingScreen(false)
+                        MainActivity.instance.showCredential(credential)
+                    }
+                }
+                if (invitation.attachment!!.isProofAttachment()) {
+                    MainActivity.instance.setMessage("Fetching proof request...")
+                    ProofRequestHandler.getProofRequest(connection!!, invitation.attachment!!) { proofRequest, error4 ->
+                        error4?.let {
+                            MainActivity.instance.showLoadingScreen(false)
+                            MainActivity.instance.setMessage("Proof request fetch failed")
+                            return@getProofRequest
+                        }
+                        DIDProofRequest.add(proofRequest!!)
+                        MainActivity.instance.showLoadingScreen(false)
+                        MainActivity.instance.showProofRequest(proofRequest)
+                    }
+                }
+            }
+        }
     }
 
 }

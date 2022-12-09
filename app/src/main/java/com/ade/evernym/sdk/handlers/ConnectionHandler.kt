@@ -3,8 +3,10 @@ package com.ade.evernym.sdk.handlers
 import android.util.Log
 import com.ade.evernym.getStringArray
 import com.ade.evernym.getStringOptional
+import com.ade.evernym.print
 import com.ade.evernym.sdk.models.DIDConnection
 import com.ade.evernym.sdk.models.DIDInvitation
+import com.evernym.sdk.vcx.VcxException
 import com.evernym.sdk.vcx.connection.ConnectionApi
 import org.json.JSONObject
 import java.util.*
@@ -245,8 +247,8 @@ object ConnectionHandler {
                     val state = ConnectionApi.vcxConnectionUpdateState(handle).get()
                     Log.d("ConnectionHandler", "awaitConnectionComplete: await attempt($count) - state($state)")
                     if (state == 4) break
-                } catch(e: Exception) {
-                    Log.e("ConnectionHandler", "awaitConnectionComplete: (2) ${e.localizedMessage}")
+                } catch(e: VcxException) {
+                    e.print("ConnectionHandler", "awaitConnectionComplete: (2)")
                 }
                 count++
                 Thread.sleep(1000)

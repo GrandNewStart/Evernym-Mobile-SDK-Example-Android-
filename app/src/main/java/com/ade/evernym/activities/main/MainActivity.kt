@@ -16,9 +16,12 @@ import com.ade.evernym.activities.connection.ConnectionActivity
 import com.ade.evernym.activities.connectionList.ConnectionListActivity
 import com.ade.evernym.activities.credential.CredentialActivity
 import com.ade.evernym.activities.credentialList.CredentialListActivity
+import com.ade.evernym.activities.proofRequest.ProofRequestActivity
+import com.ade.evernym.activities.proofRequestList.ProofRequestListActivity
 import com.ade.evernym.printLog
 import com.ade.evernym.sdk.models.DIDConnection
 import com.ade.evernym.sdk.models.DIDCredential
+import com.ade.evernym.sdk.models.DIDProofRequest
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanIntentResult
@@ -90,7 +93,7 @@ class MainActivity : AppCompatActivity() {
                     when (position) {
                         0 -> { startActivity(Intent(this@MainActivity, ConnectionListActivity::class.java)) }
                         1 -> { startActivity(Intent(this@MainActivity, CredentialListActivity::class.java)) }
-                        2 -> { Toast.makeText(this@MainActivity, "Proof Requests", Toast.LENGTH_SHORT).show() }
+                        2 -> { startActivity(Intent(this@MainActivity, ProofRequestListActivity::class.java)) }
                     }
                 }
             }
@@ -139,6 +142,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun showProofRequest(proofRequest: DIDProofRequest) {
+        setMessage("Ready")
+        runOnUiThread {
+            startActivity(
+                Intent(this@MainActivity, ProofRequestActivity::class.java).apply {
+                    putExtra("id", proofRequest.id)
+                }
+            )
+        }
+    }
 
     companion object {
         lateinit var instance: MainActivity

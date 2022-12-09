@@ -56,7 +56,7 @@ class CredentialActivity: AppCompatActivity() {
             detailText += "CONNECTION ID: ${credential.connectionId}\n\n"
             detailText += "CONNECTION NAME: ${credential.connectionName.handleBase64Scheme()}\n\n"
             detailText += "STATUS: ${credential.status}\n\n"
-            detailText += "TIMESTAMP: ${credential.timeStamp}\n\n"
+            detailText += "CREATED AT: ${credential.createdAt}\n\n"
             val attributes = JSONArray(credential.attributes)
             for (i in 0 until attributes.length()) {
                 attributes.getJSONObject(i).apply {
