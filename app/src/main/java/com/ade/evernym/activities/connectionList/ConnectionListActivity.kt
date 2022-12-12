@@ -3,7 +3,6 @@ package com.ade.evernym.activities.connectionList
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.ade.evernym.R
@@ -16,16 +15,22 @@ class ConnectionListActivity: AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_connection_list)
+        setContentView(R.layout.activity_list)
+        this.title = "Connections(${SDKStorage.connections.count()})"
+        this.supportActionBar?.setDisplayHomeAsUpEnabled(true)
         setupRecyclerView()
         SDKStorage.connectionsLiveData.observe(this) {
             setupRecyclerView()
         }
     }
 
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return super.onSupportNavigateUp()
+    }
+
     @SuppressLint("SetTextI18n")
     private fun setupRecyclerView() {
-        findViewById<TextView>(R.id.messageTextView).text = "Connections(${SDKStorage.connections.count()})"
         recyclerView.apply {
             adapter = ConnectionAdapter().apply {
                 onItemClick = { position ->

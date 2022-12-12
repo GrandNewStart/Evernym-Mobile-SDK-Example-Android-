@@ -1,18 +1,13 @@
 package com.ade.evernym.sdk.handlers
 
 import android.util.Log
-import com.ade.evernym.getJSONObjectOptional
-import com.ade.evernym.getStringArray
-import com.ade.evernym.getStringOptional
-import com.ade.evernym.print
+import com.ade.evernym.*
 import com.ade.evernym.sdk.SDKStorage
 import com.ade.evernym.sdk.models.DIDConnection
-import com.ade.evernym.sdk.models.DIDCredential
 import com.ade.evernym.sdk.models.DIDMessageAttachment
 import com.ade.evernym.sdk.models.DIDProofRequest
 import com.evernym.sdk.vcx.VcxException
 import com.evernym.sdk.vcx.proof.DisclosedProofApi
-import com.evernym.sdk.vcx.proof.ProofApi
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.*
@@ -24,27 +19,34 @@ object ProofRequestHandler {
         attachment: DIDMessageAttachment,
         completionHandler: (DIDProofRequest?, String?) -> Unit
     ) {
+        App.shared.isLoading.postValue(true)
+        App.shared.progressText.postValue("Fetching proof request...")
+
         if (!attachment.isProofAttachment()) {
             Log.e("ProofRequestHandler", "getProofRequest: (1) attachment is not proof request")
+            App.shared.isLoading.postValue(false)
+            App.shared.progressText.postValue("Failed to fetch proof request")
             completionHandler(null, "attachment is not proof request")
             return
         }
         DisclosedProofApi.proofCreateWithRequest(
             UUID.randomUUID().toString(),
             attachment.data
-        ).whenComplete { handle, error1 ->
+        ).whenCompleteAsync { handle, error1 ->
             (error1 as? VcxException)?.let {
                 it.print("ProofRequestHandler", "getProofRequest: (2)")
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Failed to fetch proof request")
                 completionHandler(null, it.localizedMessage)
-                return@whenComplete
+                return@whenCompleteAsync
             }
-            Log.d("ProofRequestHandler", "---> handle: $handle")
-
-            ProofApi.proofSerialize(handle).whenComplete { serialized, error2 ->
+            DisclosedProofApi.proofSerialize(handle).whenCompleteAsync { serialized, error2 ->
                 (error2 as? VcxException)?.let {
                     it.print("ProofRequestHandler", "getProofRequest: (3)")
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue("Failed to fetch proof request")
                     completionHandler(null, it.localizedMessage)
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
                 val proofRequest = DIDProofRequest.create(connection, serialized)
                 if (proofRequest == null) {
@@ -52,10 +54,14 @@ object ProofRequestHandler {
                         "ProofRequestHandler",
                         "getProofRequest: (4) failed to create proof request"
                     )
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue("Failed to fetch proof request")
                     completionHandler(null, "failed to create proof request")
-                    return@whenComplete
+                } else {
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue(null)
+                    completionHandler(proofRequest, null)
                 }
-                completionHandler(proofRequest, null)
             }
         }
     }
@@ -64,21 +70,30 @@ object ProofRequestHandler {
         proofRequest: DIDProofRequest,
         completionHandler: (String?, String?) -> Unit
     ) {
+        App.shared.isLoading.postValue(true)
+        App.shared.progressText.postValue("Retrieving credentials...")
+
         proofRequest.deserialize { handle ->
             if (handle == null) {
                 Log.d(
                     "ProofRequestHandler",
                     "retrieveCredentials: (1) failed to deserialize proof request"
                 )
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Failed to retrieve credentials")
                 completionHandler(null, "failed to deserialize proof request")
                 return@deserialize
             }
-            DisclosedProofApi.proofRetrieveCredentials(handle).whenComplete { creds, error ->
+            DisclosedProofApi.proofRetrieveCredentials(handle).whenCompleteAsync { creds, error ->
                 (error as? VcxException)?.let {
                     it.print("ProofRequestHandler", "retrieveCredentials: (2)")
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue("Failed to fetch proof request")
                     completionHandler("ProofRequestHandler", it.localizedMessage)
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue(null)
                 completionHandler(creds, null)
             }
         }
@@ -104,65 +119,74 @@ object ProofRequestHandler {
         proofRequest: DIDProofRequest,
         completionHandler: (JSONObject?, String?) -> Unit
     ) {
+        App.shared.isLoading.postValue(true)
+        App.shared.progressText.postValue("Extracting credential options...")
+
         retrieveCredentials(proofRequest) { retrievedCredentials, error1 ->
             error1?.let {
                 Log.e("ProofRequestHandler", "getCredentialOptions: (1) $it")
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Failed to extract credential options")
                 completionHandler(null, it)
                 return@let
             }
+
             val attrs = JSONObject(retrievedCredentials!!).getJSONObjectOptional("attrs")
             if (attrs == null) {
                 Log.e(
                     "ProofRequestHandler",
-                    "getCredentialOptions: (2) failed to serialize retreived credentials"
+                    "getCredentialOptions: (2) failed to serialize retrieved credentials"
                 )
-                completionHandler(null, "failed to serialize retreived credentials")
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Failed to extract credential options")
+                completionHandler(null, "failed to serialize retrieved credentials")
                 return@retrieveCredentials
             }
+
             val key_referents = JSONObject()
             for (key in attrs.keys()) {
                 val credentials = attrs.getJSONArray(key)
-                val referents = arrayListOf<String>()
+                val referents = JSONArray()
                 for (i in 0 until credentials.length()) {
                     val cred_info =
                         credentials.getJSONObject(i).getJSONObjectOptional("cred_info") ?: continue
                     val referent = cred_info.getStringOptional("referent") ?: continue
-                    referents.add(referent)
+                    referents.put(referent)
                 }
                 key_referents.put(key, referents)
             }
-            val referents = SDKStorage.credentials.map { it.referent }.filter { it.isNotEmpty() }
+
             val result = JSONObject()
             for (key in attrs.keys()) {
                 val items = JSONArray()
-                val item = JSONObject()
                 val array = key_referents.getStringArray(key)
-                for (ref in referents) {
-                    if (array.contains(ref)) {
-                        var value = "Unknown"
-                        val cred = DIDCredential.getByReferent(ref) ?: continue
-                        val attributes = JSONObject(cred.attributes)
-                        for (k in attributes.keys()) {
-                            val name =
-                                attributes.getJSONObject(k).getStringOptional("name") ?: continue
+                val credentials = SDKStorage.credentials
+                for (credential in credentials) {
+                    if (array.contains(credential.referent)) {
+                        val attributes = JSONArray(credential.attributes)
+                        for (i in 0 until attributes.length()) {
+                            val name    = attributes.getJSONObject(i).getStringOptional("name") ?: continue
+                            val value   = attributes.getJSONObject(i).getStringOptional("value") ?: "Unknown"
                             if (name == key) {
-                                value = attributes.getJSONObject(k).getStringOptional("value")
-                                    ?: continue
+                                JSONObject().apply {
+                                    put("value", value)
+                                    put("referent", credential.referent)
+                                    put("credentialName", credential.name)
+                                    put("connectionName", credential.connectionName)
+                                    put("connectionLogo", credential.connectionLogo)
+                                    put("createdAt", credential.createdAt)
+                                    items.put(this)
+                                }
+                                break
                             }
                         }
-                        item.apply {
-                            put("credentialName", cred.name)
-                            put("connectionName", cred.connectionName)
-                            put("connectionLogo", cred.connectionLogo)
-                            put("createdAt", cred.createdAt)
-                            item.put("value", value)
-                            item.put("referent", ref)
-                        }
-                        items.put(item)
                     }
                 }
                 result.put(key, items)
             }
+
+            App.shared.isLoading.postValue(false)
+            App.shared.progressText.postValue(null)
             completionHandler(result, null)
         }
     }
@@ -182,12 +206,17 @@ object ProofRequestHandler {
         attributes: JSONObject,
         completionHandler: (String?) -> Unit
     ) {
+        App.shared.isLoading.postValue(true)
+        App.shared.progressText.postValue("Sharing proofs...")
+
         val connection = DIDConnection.getById(proofRequest.connectionId)
         if (connection == null) {
             Log.e(
                 "ProofRequestHandler",
                 "acceptProofRequest: (1) cannot find connection by id(${proofRequest.connectionId})"
             )
+            App.shared.isLoading.postValue(false)
+            App.shared.progressText.postValue("Failed to share proofs")
             completionHandler("cannot find connection by id(${proofRequest.connectionId})")
             return
         }
@@ -197,6 +226,8 @@ object ProofRequestHandler {
                     "ProofRequestHandler",
                     "acceptProofRequest: (2) failed to deserialize connection"
                 )
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Failed to share proofs")
                 completionHandler("failed to deserialize connection")
                 return@deserialize
             }
@@ -206,6 +237,8 @@ object ProofRequestHandler {
                         "ProofRequestHandler",
                         "acceptProofRequest: (3) failed to deserialize proof request"
                     )
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue("Failed to share proofs")
                     completionHandler("failed to deserialize proof request")
                     return@deserialize
                 }
@@ -213,6 +246,8 @@ object ProofRequestHandler {
                     .whenComplete { retrievedCredentials, error1 ->
                         (error1 as? VcxException)?.let {
                             it.print("ProofRequestHandler", "acceptProofRequest: (4)")
+                            App.shared.isLoading.postValue(false)
+                            App.shared.progressText.postValue("Failed to share proofs")
                             completionHandler(it.localizedMessage)
                             return@whenComplete
                         }
@@ -227,6 +262,8 @@ object ProofRequestHandler {
                         ).whenComplete { _, error2 ->
                             (error2 as? VcxException)?.let {
                                 it.print("ProofRequestHandler", "acceptProofRequest: (5)")
+                                App.shared.isLoading.postValue(false)
+                                App.shared.progressText.postValue("Failed to share proofs")
                                 completionHandler(it.localizedMessage)
                                 return@whenComplete
                             }
@@ -236,10 +273,14 @@ object ProofRequestHandler {
                             ).whenComplete { _, error3 ->
                                 (error3 as? VcxException)?.let {
                                     it.print("ProofRequestHandler", "acceptProofRequest: (6)")
+                                    App.shared.isLoading.postValue(false)
+                                    App.shared.progressText.postValue("Failed to share proofs")
                                     completionHandler(it.localizedMessage)
                                     return@whenComplete
                                 }
                                 DIDProofRequest.delete(proofRequest)
+                                App.shared.isLoading.postValue(false)
+                                App.shared.progressText.postValue(null)
                                 completionHandler(null)
                             }
                         }
@@ -261,6 +302,14 @@ object ProofRequestHandler {
             completionHandler("cannot find connection by id(${proofRequest.connectionId})")
             return
         }
+
+        if (connection.status == "pending") {
+            DIDConnection.delete(connection)
+            DIDProofRequest.delete(proofRequest)
+            completionHandler(null)
+            return
+        }
+
         connection.deserialize { connectionHandle ->
             if (connectionHandle == null) {
                 Log.e(

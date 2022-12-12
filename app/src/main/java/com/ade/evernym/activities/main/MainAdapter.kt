@@ -13,7 +13,8 @@ class MainAdapter: RecyclerView.Adapter<MainAdapter.ViewHolder>() {
     private val list = listOf(
         "Connections",
         "Credentials",
-        "ProofRequests"
+        "ProofRequests",
+        "Messages"
     )
     var onItemClick: (position: Int)->Unit = {}
 

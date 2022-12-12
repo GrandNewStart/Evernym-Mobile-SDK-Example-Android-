@@ -42,12 +42,11 @@
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                tools:itemCount="8"
                 android:layout_marginTop="20dp"
-                android:lineSpacingExtra="10dp"
-                tools:itemCount="6"
-                tools:listitem="@layout/item_main" />
+                tools:listitem="@layout/item_proof"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
 
         </LinearLayout>
 
@@ -102,6 +101,7 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
+            android:id="@+id/progressTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"

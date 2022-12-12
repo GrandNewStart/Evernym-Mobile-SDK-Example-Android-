@@ -167,7 +167,6 @@ object CredentialHandler {
                         )
                         completionHandler(credential, null)
                     }
-
             }
         }
     }
@@ -253,21 +252,28 @@ object CredentialHandler {
                 completionHandler("failed to deserialize credential")
                 return@deserialize
             }
+
             try {
                 var state = -1
+                var count = 0
                 while (state != 4) {
                     state = CredentialApi.credentialUpdateState(credentialHandle).get()
                     Log.d("CredentialHandler", "awaitCredentialReceived: state($state)")
+                    count++
+                    if (count == 10) {
+                        completionHandler("Failed")
+                        return@deserialize
+                    }
                     Thread.sleep(1000)
                 }
             } catch (e: VcxException) {
                 e.print("CredentialHandler", "awaitCredentialReceived: (2)")
             }
-            CredentialApi.credentialSerialize(credentialHandle).whenComplete { serialized, error2 ->
+            CredentialApi.credentialSerialize(credentialHandle).whenCompleteAsync { serialized, error2 ->
                 (error2 as? VcxException)?.let {
                     it.print("CredentialHandler", "awaitCredentialReceived: (3)")
                     completionHandler(it.localizedMessage)
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
                 credential.serialized = serialized
                 credential.status = "accepted"

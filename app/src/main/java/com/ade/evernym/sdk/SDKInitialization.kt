@@ -1,6 +1,7 @@
 package com.ade.evernym.sdk
 
 import android.util.Log
+import com.ade.evernym.App
 import com.ade.evernym.print
 import com.evernym.sdk.vcx.VcxException
 import com.evernym.sdk.vcx.utils.UtilsApi
@@ -16,6 +17,7 @@ object SDKInitialization {
 
     fun initVCX(completionHandler: (String?)->Unit) {
         StorageUtils.configureStoragePermissions()
+        App.shared.isLoading.postValue(true)
         if (SDKStorage.appProvisioned) {
             Log.d("SDKInitialization", "initVCX: (1)")
             initialize(completionHandler)
@@ -58,6 +60,7 @@ object SDKInitialization {
         Log.d("SDKInitialization", "provisionCloudAgentAndInitializeSdk: VcxConfig - $config")
         getProvisionToken { token ->
             if (token == null) {
+                App.shared.isLoading.postValue(false)
                 completionHandler("failed to get provisiton token")
                 return@getProvisionToken
             }
@@ -66,6 +69,7 @@ object SDKInitialization {
                 error?.let {
                     it.printStackTrace()
                     Log.e("SDKInitialization", "provisionCloudAgentAndInitializeSdk: (1) ${it.localizedMessage}")
+                    App.shared.isLoading.postValue(false)
                     completionHandler(it.localizedMessage)
                     return@whenComplete
                 }
@@ -73,6 +77,7 @@ object SDKInitialization {
                 oneTimeInfo?.let {
                     SDKStorage.appProvisioned = true
                     SDKStorage.storeVcxConfig(it)
+                    App.shared.isLoading.postValue(false)
                     initialize(completionHandler)
                     return@whenComplete
                 }
@@ -87,6 +92,7 @@ object SDKInitialization {
             VcxApi.vcxInitWithConfig(config).whenComplete { _: Int?, error: Throwable? ->
                 error?.let {
                     Log.e("SDKInitialization", "initialize: (1) ${it.localizedMessage}")
+                    App.shared.isLoading.postValue(false)
                     completionHandler(it.localizedMessage)
                     return@whenComplete
                 }
@@ -96,6 +102,7 @@ object SDKInitialization {
             e.print("SDKInitialization", "initialize: (2)")
             SDKStorage.removeVcxConfig()
             SDKStorage.appProvisioned = false
+            App.shared.isLoading.postValue(false)
             completionHandler(e.localizedMessage)
         }
     }

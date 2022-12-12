@@ -1,6 +1,7 @@
 package com.ade.evernym.sdk.models
 
 data class DIDMessageAttachment(
+
     var type: String,
     var data: String
 ) {

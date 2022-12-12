@@ -16,6 +16,7 @@ import com.ade.evernym.activities.connection.ConnectionActivity
 import com.ade.evernym.activities.connectionList.ConnectionListActivity
 import com.ade.evernym.activities.credential.CredentialActivity
 import com.ade.evernym.activities.credentialList.CredentialListActivity
+import com.ade.evernym.activities.messageList.MessageListActivity
 import com.ade.evernym.activities.proofRequest.ProofRequestActivity
 import com.ade.evernym.activities.proofRequestList.ProofRequestListActivity
 import com.ade.evernym.printLog
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private val messageTextView: TextView by lazy { findViewById(R.id.messageTextView) }
     private val recyclerView: RecyclerView by lazy { findViewById(R.id.recyclerView) }
     private val loadingScreen: FrameLayout by lazy { findViewById(R.id.loadingScreen) }
+    private val progressTextView: TextView by lazy { findViewById(R.id.progressTextView) }
 
     private val qrCodeLauncher = registerForActivityResult(
         ScanContract()
@@ -53,18 +55,22 @@ class MainActivity : AppCompatActivity() {
         awaitSDKInitialization()
         setupButton()
         setupRecyclerView()
-        setMessage("Initializing SDK...")
+        App.shared.isLoading.observe(this) { this.showLoadingScreen(it) }
+        App.shared.progressText.observe(this) { this.setMessage(it) }
+
     }
 
     private fun awaitSDKInitialization() {
         App.shared.sdkInitialized.observe(this) { initialized ->
             this.sdkInitialized = initialized
             if (initialized) {
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("SDK Ready")
                 Toast.makeText(this, "SDK Ready", Toast.LENGTH_SHORT).show()
-                setMessage("SDK Ready")
             } else {
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("SDK Failed")
                 Toast.makeText(this, "SDK Failed", Toast.LENGTH_SHORT).show()
-                setMessage("SDK Failed")
             }
         }
     }
@@ -94,15 +100,17 @@ class MainActivity : AppCompatActivity() {
                         0 -> { startActivity(Intent(this@MainActivity, ConnectionListActivity::class.java)) }
                         1 -> { startActivity(Intent(this@MainActivity, CredentialListActivity::class.java)) }
                         2 -> { startActivity(Intent(this@MainActivity, ProofRequestListActivity::class.java)) }
+                        3 -> { startActivity(Intent(this@MainActivity, MessageListActivity::class.java)) }
                     }
                 }
             }
         }
     }
 
-    fun setMessage(message: String?) {
+    private fun setMessage(message: String?) {
         runOnUiThread {
-            messageTextView.text = message
+            this.messageTextView.text = message
+            this.progressTextView.text = message
         }
     }
 
@@ -112,7 +120,7 @@ class MainActivity : AppCompatActivity() {
         QRHandler.handle(code)
     }
 
-    fun showLoadingScreen(show: Boolean) {
+    private fun showLoadingScreen(show: Boolean) {
         runOnUiThread {
             loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
         }
@@ -120,7 +128,6 @@ class MainActivity : AppCompatActivity() {
 
     fun showConnection(connection: DIDConnection) {
         Log.d("MainActivity", "showConnectionInvitation: ${connection.getDescription()}")
-        setMessage("Ready")
         runOnUiThread {
             startActivity(
                 Intent(this@MainActivity, ConnectionActivity::class.java).apply {
@@ -132,7 +139,6 @@ class MainActivity : AppCompatActivity() {
 
     fun showCredential(credential: DIDCredential) {
         printLog("MainActivity", "showConnectionInvitation: ${credential.getDescription()}")
-        setMessage("Ready")
         runOnUiThread {
             startActivity(
                 Intent(this@MainActivity, CredentialActivity::class.java).apply {
@@ -143,7 +149,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showProofRequest(proofRequest: DIDProofRequest) {
-        setMessage("Ready")
         runOnUiThread {
             startActivity(
                 Intent(this@MainActivity, ProofRequestActivity::class.java).apply {

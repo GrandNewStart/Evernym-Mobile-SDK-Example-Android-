@@ -9,6 +9,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.ade.evernym.App
 import com.ade.evernym.R
 import com.ade.evernym.handleBase64Scheme
 import com.ade.evernym.sdk.handlers.ConnectionHandler
@@ -26,13 +27,16 @@ class ConnectionActivity : AppCompatActivity() {
     private val acceptButton: MaterialButton by lazy { findViewById(R.id.acceptButton) }
     private val rejectButton: MaterialButton by lazy { findViewById(R.id.rejectButton) }
     private val loadingScreen: FrameLayout by lazy { findViewById(R.id.loadingScreen) }
+    private val progressTextView: TextView by lazy { findViewById(R.id.progressTextView) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_connection)
+        setContentView(R.layout.activity_item)
+        this.supportActionBar?.setDisplayHomeAsUpEnabled(true)
         intent.getStringExtra("id")?.let {
             DIDConnection.getById(it)?.let { connection ->
                 this.connection = connection
+                this.title = connection.name.handleBase64Scheme()
                 setupTextViews()
                 setupImageView()
                 setupButtons()
@@ -40,6 +44,13 @@ class ConnectionActivity : AppCompatActivity() {
             }
             finish()
         }
+        App.shared.isLoading.observe(this) { this.showLoadingScreen(it) }
+        App.shared.progressText.observe(this) { this.setMessage(it) }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return super.onSupportNavigateUp()
     }
 
     @SuppressLint("SetTextI18n")
@@ -64,29 +75,8 @@ class ConnectionActivity : AppCompatActivity() {
             acceptButton.visibility = View.VISIBLE
             rejectButton.visibility = View.VISIBLE
             rejectButton.text = "Reject"
-            acceptButton.setOnClickListener {
-                showLoadingScreen(true)
-                ConnectionHandler.acceptConnection(connection) { updatedConnection, error ->
-                    runOnUiThread {
-                        error?.let {
-                            Toast.makeText(this, "Connection failed", Toast.LENGTH_SHORT).show()
-                            Log.e("ConnectionActivity", "setupButtons: $error")
-                            return@runOnUiThread
-                        }
-                        Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show()
-                        this.connection = updatedConnection!!
-                        setupTextViews()
-                        setupButtons()
-                        showLoadingScreen(false)
-                    }
-                }
-            }
-            rejectButton.setOnClickListener {
-                runOnUiThread {
-                    DIDConnection.delete(connection)
-                    finish()
-                }
-            }
+            acceptButton.setOnClickListener { this.accept() }
+            rejectButton.setOnClickListener { this.reject() }
         }
         if (connection.status == "accepted") {
             acceptButton.visibility = View.GONE
@@ -102,7 +92,57 @@ class ConnectionActivity : AppCompatActivity() {
     }
 
     private fun showLoadingScreen(show: Boolean) {
-        loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
+        runOnUiThread {
+            loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun setMessage(message: String?) {
+        runOnUiThread {
+            progressTextView.text = message
+        }
+    }
+
+    private fun accept() {
+        App.shared.isLoading.postValue(true)
+        App.shared.progressText.postValue("Connecting...")
+        ConnectionHandler.acceptConnection(connection) { updatedConnection, error ->
+            runOnUiThread {
+                error?.let {
+                    Toast.makeText(this, "Connection failed", Toast.LENGTH_SHORT).show()
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue("Connection failed")
+                    Log.e("ConnectionActivity", "setupButtons: $error")
+                    return@runOnUiThread
+                }
+                Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show()
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Connection success")
+                this.connection = updatedConnection!!
+                setupTextViews()
+                setupButtons()
+                showLoadingScreen(false)
+            }
+        }
+    }
+
+    private fun reject() {
+        App.shared.isLoading.postValue(true)
+        App.shared.progressText.postValue("Deleting...")
+        ConnectionHandler.deleteConnection(this.connection) { error ->
+            runOnUiThread {
+                error?.let {
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue("Connection delete failed")
+                    Log.e("ConnectionActivity", it)
+                    return@runOnUiThread
+                }
+                Toast.makeText(this, "Connection deleted", Toast.LENGTH_SHORT).show()
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Connection deleted")
+                finish()
+            }
+        }
     }
 
 }

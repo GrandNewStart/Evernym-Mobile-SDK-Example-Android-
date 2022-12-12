@@ -62,6 +62,11 @@
             android:screenOrientation="portrait"
             tools:replace="screenOrientation" />
 
+        <activity
+            android:name=".activities.messageList.MessageListActivity"
+            android:screenOrientation="portrait"
+            tools:replace="screenOrientation" />
+
     </application>
 
 </manifest>

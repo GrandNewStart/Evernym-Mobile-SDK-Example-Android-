@@ -1,14 +1,10 @@
 package com.ade.evernym.sdk.models
 
 import android.util.Log
-import com.ade.evernym.getJSONArrayOptional
-import com.ade.evernym.getJSONObjectOptional
-import com.ade.evernym.getStringOptional
-import com.ade.evernym.print
+import com.ade.evernym.*
 import com.ade.evernym.sdk.SDKStorage
 import com.evernym.sdk.vcx.VcxException
-import com.evernym.sdk.vcx.proof.ProofApi
-import okio.ByteString.Companion.decodeBase64
+import com.evernym.sdk.vcx.proof.DisclosedProofApi
 import org.json.JSONObject
 import java.util.*
 
@@ -23,12 +19,26 @@ data class DIDProofRequest(
     var timestamp: String
 ) {
 
+    fun printDescription() {
+        JSONObject().apply {
+            put("id", id)
+            put("threadId", threadId)
+            put("name", name)
+            put("connectionId", connectionId)
+            put("connectionName", connectionName)
+            put("connectionLogo", connectionLogo)
+            put("serialized", JSONObject(serialized))
+            put("timestamp", timestamp)
+            Log.d("--->", this.toString())
+        }
+    }
+
     fun deserialize(completionHandler: (Int?) -> Unit) {
-        ProofApi.proofDeserialize(serialized).whenComplete { handle, error ->
+        DisclosedProofApi.proofDeserialize(serialized).whenCompleteAsync { handle, error ->
             (error as? VcxException)?.let {
                 it.print("DIDProofRequest", "deserialize: ")
                 completionHandler(null)
-                return@whenComplete
+                return@whenCompleteAsync
             }
             completionHandler(handle)
         }
@@ -40,37 +50,37 @@ data class DIDProofRequest(
             val json = JSONObject(serialized)
             val data = json.getJSONObjectOptional("data")
             if (data == null) {
-                Log.e("ProofRequestHandler", "create: (1) cannot find field, 'data'")
+                Log.e("DIDProofRequest", "create: (1) cannot find field, 'data'")
                 return null
             }
             val prover = data.getJSONObjectOptional("prover_sm")
             if (prover == null) {
-                Log.e("ProofRequestHandler", "create: (2) cannot find field, 'prover_sm'")
+                Log.e("DIDProofRequest", "create: (2) cannot find field, 'prover_sm'")
                 return null
             }
             val state = prover.getJSONObjectOptional("state")
             if (state == null) {
-                Log.e("ProofRequestHandler", "create: (3) cannot find field, 'state'")
+                Log.e("DIDProofRequest", "create: (3) cannot find field, 'state'")
                 return null
             }
             val requestReceived = state.getJSONObjectOptional("RequestReceived")
             if (requestReceived == null) {
-                Log.e("ProofRequestHandler", "create: (4) cannot find field, 'RequestReceived'")
+                Log.e("DIDProofRequest", "create: (4) cannot find field, 'RequestReceived'")
                 return null
             }
-            val thread = requestReceived.getJSONObjectOptional("thread")
-            val threadId = thread?.getStringOptional("thid")
+            val threadId = requestReceived.getJSONObjectOptional("thread")?.getStringOptional("thid")
             if (threadId == null) {
-                Log.e("ProofRequestHandler", "create: (5) cannot find field, 'thid'")
+                Log.e("DIDProofRequest", "create: (5) cannot find field, 'thid'")
                 return null
             }
-            val presentation_request = requestReceived.getJSONObjectOptional("presentation_request")
-            val request_presentation_attach = presentation_request?.getJSONArrayOptional("presentation_request")?.get(0)
-            val request_presentation_attach_data = presentation_request?.getJSONObjectOptional("request_presentations~attach")
-            val request_presentation_attach_data_base64 = request_presentation_attach_data?.getStringOptional("base64")
-            val proofRequestString = request_presentation_attach_data_base64?.decodeBase64()?.toString()
+            val proofRequestString = requestReceived.getJSONObjectOptional("presentation_request")
+                ?.getJSONArrayOptional("request_presentations~attach")
+                ?.getJSONObject(0)
+                ?.getJSONObjectOptional("data")
+                ?.getStringOptional("base64")
+                ?.decodeBase64()
             if (proofRequestString == null) {
-                Log.e("ProofRequestHandler", "create: (6) cannot decode base64 data")
+                Log.e("DIDProofRequest", "create: (6) cannot decode base64 data")
                 return null
             }
             val proofRequestJSON = JSONObject(proofRequestString)
@@ -87,7 +97,11 @@ data class DIDProofRequest(
         }
 
         fun getById(id: String): DIDProofRequest? {
-            return SDKStorage.proofRequests.first { it.id == id }
+            return try {
+                SDKStorage.proofRequests.first { it.id == id }
+            } catch(e: Exception) {
+                null
+            }
         }
 
         fun add(proofRequest: DIDProofRequest) {
@@ -136,19 +150,24 @@ data class DIDProofRequest(
              }
          }
          */
-        fun createSelectedCredentialObject(retrievedCredentials: String, attributes: JSONObject): JSONObject {
-            val json    = JSONObject(retrievedCredentials)
-            val attrs   = json.getJSONObject("attrs")
-            val result  = JSONObject()
+        fun createSelectedCredentialObject(
+            retrievedCredentials: String,
+            attributes: JSONObject
+        ): JSONObject {
+            val json = JSONObject(retrievedCredentials)
+            val attrs = json.getJSONObject("attrs")
+            val result = JSONObject()
             for (key in attrs.keys()) {
                 val attr = attributes.getJSONObjectOptional(key)
                 val credentials = attrs.getJSONArrayOptional(key)
-                if (attr == null || credentials == null) { continue }
+                if (attr == null || credentials == null) {
+                    continue
+                }
                 for (i in 0 until credentials.length()) {
-                    val credential  = credentials.getJSONObject(i)
-                    val cred_info   = credential.getJSONObject("cred_info")
+                    val credential = credentials.getJSONObject(i)
+                    val cred_info = credential.getJSONObject("cred_info")
                     val cred_def_id = cred_info.getString("cred_def_id")
-                    val schema_id   = cred_info.getString("schema_id")
+                    val schema_id = cred_info.getString("schema_id")
                     val referent = attr.getString("referent")
                     if (referent == cred_info.getString("referent")) {
                         credential.put("cred_def_id", cred_def_id)

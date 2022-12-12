@@ -4,8 +4,10 @@ import android.util.Log
 import com.ade.evernym.getStringArray
 import com.ade.evernym.getStringOptional
 import com.ade.evernym.print
+import com.ade.evernym.sdk.SDKStorage
 import com.ade.evernym.sdk.models.DIDConnection
 import com.ade.evernym.sdk.models.DIDInvitation
+import com.ade.evernym.sdk.models.DIDMessage
 import com.evernym.sdk.vcx.VcxException
 import com.evernym.sdk.vcx.connection.ConnectionApi
 import org.json.JSONObject
@@ -23,17 +25,17 @@ object ConnectionHandler {
             }
             if (existingConnection == null) {
                 Log.d("ConnectionHandler", "getConnection: (2-1) no existing connection")
-                createConnectionObject(invitation.message) { handle, error ->
-                    error?.let {
+                createConnectionObject(invitation.message) { handle, error1 ->
+                    error1?.let {
                         Log.e("ConnectionHandler", "getConnection: (2) $it")
                         completionHandler(null, it)
                         return@createConnectionObject
                     }
-                    ConnectionApi.connectionInviteDetails(handle!!, 0).whenCompleteAsync { details, error ->
-                        error?.let {
+                    ConnectionApi.connectionInviteDetails(handle!!, 0).whenComplete { details, error2 ->
+                        error2?.let {
                             Log.e("ConnectionHandler", "getConnection: (3) ${it.localizedMessage}")
                             completionHandler(null, it.localizedMessage)
-                            return@whenCompleteAsync
+                            return@whenComplete
                         }
                         val connectionJSON = JSONObject(details)
                         val name = connectionJSON.getStringOptional("label")
@@ -41,13 +43,13 @@ object ConnectionHandler {
                         if (name == null || logo == null) {
                             Log.e("ConnectionHandler", "getConnection: (4) no connection name, logo")
                             completionHandler(null, "no connection name, logo")
-                            return@whenCompleteAsync
+                            return@whenComplete
                         }
-                        ConnectionApi.connectionSerialize(handle).whenCompleteAsync { serialized, error ->
+                        ConnectionApi.connectionSerialize(handle).whenComplete{ serialized, error ->
                             error?.let {
                                 Log.e("ConnectionHandler", "getConnection: (5) ${it.localizedMessage}")
                                 completionHandler(null, it.localizedMessage)
-                                return@whenCompleteAsync
+                                return@whenComplete
                             }
                             val connection = DIDConnection(
                                 UUID.randomUUID().toString(),
@@ -58,6 +60,7 @@ object ConnectionHandler {
                                 "",
                                 serialized
                             )
+                            DIDConnection.add(connection)
                             completionHandler(connection, null)
                         }
                     }
@@ -84,14 +87,14 @@ object ConnectionHandler {
                             completionHandler(null, "failed to get connection name, logo")
                             return@whenComplete
                         }
-                        ConnectionApi.connectionSerialize(handle).whenComplete { serialized, error ->
-                            error?.let {
+                        ConnectionApi.connectionSerialize(handle).whenComplete { serialized, error1 ->
+                            error1?.let {
                                 Log.e("ConnectionHandler", "getConnection: (8) ${it.localizedMessage}")
                                 completionHandler(null, it.localizedMessage)
                                 return@whenComplete
                             }
-                            ConnectionApi.connectionGetPwDid(handle).whenComplete { pwDid, error ->
-                                error?.let {
+                            ConnectionApi.connectionGetPwDid(handle).whenComplete { pwDid, error2 ->
+                                error2?.let {
                                     Log.e("ConnectionHandler", "getConnection: (9) ${it.localizedMessage}")
                                     completionHandler(null, it.localizedMessage)
                                     return@whenComplete
@@ -109,6 +112,15 @@ object ConnectionHandler {
                 }
             }
         }
+    }
+
+    fun getConnection(message: DIDMessage): DIDConnection? {
+        for (connection in SDKStorage.connections) {
+            if (connection.pwDid == message.pwDid) {
+                return connection
+            }
+        }
+        return null
     }
 
     private fun createConnectionObject(invitation: String, completionHandler: (Int?, String?)->Unit) {
@@ -140,6 +152,7 @@ object ConnectionHandler {
     fun acceptConnection(connection: DIDConnection, completionHandler: (DIDConnection?,String?) -> Unit) {
         val invitation = JSONObject(connection.invitation)
         val type = invitation.getString("@type")
+
         if (connection.status == "pending") {
             Log.d("ConnectionHandler", "acceptConnection: (1-1) accepted connection")
             connect(connection) { updateConnection, error ->
@@ -242,7 +255,7 @@ object ConnectionHandler {
                 return@deserialize
             }
             var count = 0
-            while(true) {
+            while(count < 5) {
                 try {
                     val state = ConnectionApi.vcxConnectionUpdateState(handle).get()
                     Log.d("ConnectionHandler", "awaitConnectionComplete: await attempt($count) - state($state)")
@@ -278,24 +291,51 @@ object ConnectionHandler {
     private fun awaitReuseComplete(connection: DIDConnection, completionHandler: (DIDConnection?, String?)->Unit) {
         connection.deserialize { handle ->
             if (handle == null) {
-                Log.e("ConnectionHandler", "awaitConnectionComplete: (1) failed to deserialize connection")
+                Log.e("ConnectionHandler", "awaitReuseComplete: (1) failed to deserialize connection")
                 completionHandler(null, "failed to deserialize connection")
                 return@deserialize
             }
             var count = 0
-            while(true) {
-                Log.d("ConnectionHandler", "awaitConnectionComplete: await attempt $count")
+            while(count < 5) {
                 try {
                     val state = ConnectionApi.vcxConnectionUpdateState(handle).get()
+                    Log.d("ConnectionHandler", "awaitReuseComplete: await attempt($count) - state ($state)")
                     if (state == 4) {
                         completionHandler(connection, null)
                         return@deserialize
                     }
                 } catch(e: Exception) {
-                    Log.e("ConnectionHandler", "awaitConnectionComplete: (2) ${e.localizedMessage}")
+                    Log.e("ConnectionHandler", "awaitReuseComplete: (2) ${e.localizedMessage}")
                 }
                 count++
                 Thread.sleep(1000)
+            }
+        }
+    }
+
+    fun deleteConnection(connection: DIDConnection, completionHandler: (String?)->Unit) {
+        if (connection.status == "pending") {
+            DIDConnection.delete(connection)
+            completionHandler(null)
+            return
+        }
+        connection.deserialize { handle ->
+            if (handle == null) {
+                Log.e(
+                    "ConnectionHandler",
+                    "deleteConnection: (1) failed to deserialize connection"
+                )
+                completionHandler("failed to deserialize connection")
+                return@deserialize
+            }
+            ConnectionApi.deleteConnection(handle).whenCompleteAsync { _, error ->
+                (error as? VcxException)?.let {
+                    it.print("ConnectionHandler", "deleteConnection: (2)")
+                    completionHandler(it.localizedMessage)
+                    return@whenCompleteAsync
+                }
+                DIDConnection.delete(connection)
+                completionHandler(null)
             }
         }
     }

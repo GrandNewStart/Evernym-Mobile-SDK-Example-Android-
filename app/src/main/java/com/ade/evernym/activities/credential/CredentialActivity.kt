@@ -8,6 +8,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.ade.evernym.App
 import com.ade.evernym.R
 import com.ade.evernym.getStringOptional
 import com.ade.evernym.handleBase64Scheme
@@ -27,13 +28,16 @@ class CredentialActivity: AppCompatActivity() {
     private val acceptButton: MaterialButton by lazy { findViewById(R.id.acceptButton) }
     private val rejectButton: MaterialButton by lazy { findViewById(R.id.rejectButton) }
     private val loadingScreen: FrameLayout by lazy { findViewById(R.id.loadingScreen) }
+    private val progressTextView: TextView by lazy { findViewById(R.id.progressTextView) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_credential)
+        setContentView(R.layout.activity_item)
+        this.supportActionBar?.setDisplayHomeAsUpEnabled(true)
         intent.getStringExtra("id")?.let {
             DIDCredential.getById(it)?.let { credential ->
                 this.credential = credential
+                this.title = credential.name.handleBase64Scheme()
                 this.setupTextViews()
                 this.setupImageView()
                 this.setupButtons()
@@ -41,6 +45,13 @@ class CredentialActivity: AppCompatActivity() {
             }
             finish()
         }
+        App.shared.isLoading.observe(this) { this.showLoadingScreen(it) }
+        App.shared.progressText.observe(this) { this.setMessage(it) }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return super.onSupportNavigateUp()
     }
 
     @SuppressLint("SetTextI18n")
@@ -85,46 +96,14 @@ class CredentialActivity: AppCompatActivity() {
                 rejectButton.visibility = View.VISIBLE
                 acceptButton.text = "Accept"
                 rejectButton.text = "Reject"
-                acceptButton.setOnClickListener {
-                    this.showLoadingScreen(true)
-                    CredentialHandler.acceptCredential(this.credential) { credential, error ->
-                        error?.let {
-                            Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                            return@acceptCredential
-                        }
-                        this.credential = credential!!
-                        this.showLoadingScreen(false)
-                        this.setupTextViews()
-                        this.setupButtons()
-                    }
-                }
-                rejectButton.setOnClickListener {
-                    runOnUiThread {
-                        CredentialHandler.rejectCredential(this.credential) { error ->
-                            error?.let {
-                                Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                                return@rejectCredential
-                            }
-                            finish()
-                        }
-                    }
-                }
+                acceptButton.setOnClickListener { this.accept() }
+                rejectButton.setOnClickListener { this.reject() }
             }
             if (credential.status == "accepted") {
                 acceptButton.visibility = View.GONE
                 rejectButton.visibility = View.VISIBLE
                 rejectButton.text = "Delete"
-                rejectButton.setOnClickListener {
-                    runOnUiThread{
-                        CredentialHandler.rejectCredential(this.credential) { error ->
-                            error?.let {
-                                Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                                return@rejectCredential
-                            }
-                            finish()
-                        }
-                    }
-                }
+                rejectButton.setOnClickListener { this.reject() }
             }
         }
     }
@@ -135,5 +114,49 @@ class CredentialActivity: AppCompatActivity() {
         }
     }
 
+    private fun setMessage(message: String?) {
+        runOnUiThread {
+            this.progressTextView.text = message
+        }
+    }
+
+    private fun accept() {
+        App.shared.isLoading.postValue(true)
+        App.shared.progressText.postValue("Accepting credential...")
+        CredentialHandler.acceptCredential(this.credential) { credential, error ->
+            runOnUiThread {
+                error?.let {
+                    Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue("Credential acceptance failed")
+                    return@runOnUiThread
+                }
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Credential accepted")
+                this.credential = credential!!
+                this.setupTextViews()
+                this.setupButtons()
+            }
+        }
+    }
+
+    private fun reject() {
+        App.shared.isLoading.postValue(true)
+        App.shared.progressText.postValue("Deleting credential...")
+        CredentialHandler.rejectCredential(this.credential) { error ->
+            runOnUiThread {
+                error?.let {
+                    Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
+                    App.shared.isLoading.postValue(false)
+                    App.shared.progressText.postValue("Credential delete failed")
+                    return@runOnUiThread
+                }
+                Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
+                App.shared.isLoading.postValue(false)
+                App.shared.progressText.postValue("Credential deleted")
+                finish()
+            }
+        }
+    }
 
 }

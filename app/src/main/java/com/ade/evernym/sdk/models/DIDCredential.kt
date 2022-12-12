@@ -51,11 +51,11 @@ data class DIDCredential(
     }
 
     fun deserialize(completionHandler: (Int?)->Unit) {
-        CredentialApi.credentialDeserialize(serialized).whenComplete { handle, error ->
+        CredentialApi.credentialDeserialize(serialized).whenCompleteAsync { handle, error ->
             error?.let {
                 Log.e("DIDCredential", "deserialize: ${it.localizedMessage}")
                 completionHandler(null)
-                return@whenComplete
+                return@whenCompleteAsync
             }
             completionHandler(handle)
         }
@@ -64,11 +64,11 @@ data class DIDCredential(
     fun getReferent(completionHandler: (Pair<String,String>?)->Unit) {
         deserialize { handle1 ->
             handle1?.let { handle2 ->
-                CredentialApi.credentialGetInfo(handle2).whenComplete { info, error ->
+                CredentialApi.credentialGetInfo(handle2).whenCompleteAsync { info, error ->
                     error?.let {
                         Log.e("DIDCredential", "getReferent: (1) ${it.localizedMessage}")
                         completionHandler(null)
-                        return@whenComplete
+                        return@whenCompleteAsync
                     }
                     val json = JSONObject(info)
                     val referent = json.getStringOptional("referent")
@@ -76,7 +76,7 @@ data class DIDCredential(
                     if (referent == null || credDefId == null) {
                         Log.e("DIDCredential", "getReferent: (2) cannot find 'referent' or 'cred_def_id'")
                         completionHandler(null)
-                        return@whenComplete
+                        return@whenCompleteAsync
                     }
                     completionHandler(Pair(referent, credDefId))
                 }
@@ -87,11 +87,19 @@ data class DIDCredential(
     companion object {
 
         fun getById(id: String): DIDCredential? {
-            return SDKStorage.credentials.first { cred -> cred.id == id }
+            return try {
+                SDKStorage.credentials.first { it.id == id }
+            } catch(e: Exception) {
+                null
+            }
         }
 
         fun getByReferent(referent: String): DIDCredential? {
-            return SDKStorage.credentials.first { cred -> cred.referent == referent }
+            return try {
+                SDKStorage.credentials.first { it.referent == referent }
+            } catch(e: Exception) {
+                null
+            }
         }
 
         fun add(credential: DIDCredential) {

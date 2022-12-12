@@ -1,6 +1,5 @@
 package com.ade.evernym.activities.proofRequest
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,45 +7,17 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ade.evernym.R
-import com.ade.evernym.sdk.handlers.ProofRequestHandler
 import com.ade.evernym.sdk.models.DIDCredential
-import com.ade.evernym.sdk.models.DIDProofRequest
 import com.bumptech.glide.Glide
 import org.json.JSONObject
 
-class ProofRequestAdapter(private val proofRequest: DIDProofRequest) :
+class ProofRequestAdapter(
+    private val keys: ArrayList<String>,
+    private val proof: JSONObject
+) :
     RecyclerView.Adapter<ProofRequestAdapter.ViewHolder>() {
 
-    private var list = JSONObject()
-    private var keys = arrayListOf<String>()
-    var proof = JSONObject()
     var onItemClick: (position: Int) -> Unit = {}
-
-    init {
-        ProofRequestHandler.getCredentialOptions(this.proofRequest) { options, error ->
-            error?.let {
-                Log.e("ProofRequestAdapter", "init: (1) $it")
-                return@getCredentialOptions
-            }
-            list = options!!
-            keys.clear()
-            options.keys().forEach { keys.add(it) }
-            for (key in keys) {
-                options.getJSONArray(key).getJSONObject(0).let {
-                    val referent = it.getString("referent")
-                    val value = it.getString("value")
-                    this.proof.put(
-                        key,
-                        JSONObject().apply {
-                            put("referent", referent)
-                            put("value", value)
-                        }
-                    )
-                }
-                notifyItemRangeChanged(0, this.keys.count())
-            }
-        }
-    }
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(position: Int) {

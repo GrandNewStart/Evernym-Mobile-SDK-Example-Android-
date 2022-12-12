@@ -3,7 +3,6 @@ package com.ade.evernym.activities.proofRequestList
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.ade.evernym.R
@@ -16,21 +15,27 @@ class ProofRequestListActivity: AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_proof_request_list)
+        setContentView(R.layout.activity_list)
+        this.title = "ProofRequests(${SDKStorage.proofRequests.count()})"
+        this.supportActionBar?.setDisplayHomeAsUpEnabled(true)
         setupRecyclerView()
         SDKStorage.proofRequestsLiveData.observe(this) {
             this.setupRecyclerView()
         }
     }
 
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return super.onSupportNavigateUp()
+    }
+
     @SuppressLint("SetTextI18n")
     private fun setupRecyclerView() {
-        findViewById<TextView>(R.id.messageTextView).text = "ProofRequests(${SDKStorage.proofRequests.count()})"
         recyclerView.apply {
             adapter = ProofRequestAdapter().apply {
                 onItemClick = { position ->
                     val intent = Intent(this@ProofRequestListActivity, ProofRequestActivity::class.java).apply {
-                        putExtra("id", SDKStorage.connections[position].id)
+                        putExtra("id", SDKStorage.proofRequests[position].id)
                     }
                     startActivity(intent)
                 }

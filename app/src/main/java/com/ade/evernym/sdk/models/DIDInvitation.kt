@@ -1,5 +1,6 @@
 package com.ade.evernym.sdk.models
 
+import com.ade.evernym.printLog
 import com.ade.evernym.sdk.SDKStorage
 import com.ade.evernym.sdk.enums.InvitationType
 import org.json.JSONObject
@@ -13,6 +14,22 @@ data class DIDInvitation (
     var attachment: DIDMessageAttachment?
 
 ) {
+
+    fun printDescription() {
+        JSONObject().apply {
+            put("id",id)
+            put("icon",icon)
+            put("name",name)
+            put("message",JSONObject(message))
+            attachment?.let { attachment ->
+                put("attachment", JSONObject().apply {
+                    put("type", attachment.type)
+                    put("data", JSONObject(attachment.data))
+                })
+            }
+            printLog("--->", this.toString())
+        }
+    }
 
     fun getType(): InvitationType {
         val invitation = JSONObject(message)

@@ -8,10 +8,15 @@ import com.ade.evernym.sdk.SDKInitialization
 class App: Application() {
 
     val sdkInitialized by lazy { MutableLiveData<Boolean>() }
+    val progressText = MutableLiveData<String?>()
+    val isLoading = MutableLiveData<Boolean>()
 
     override fun onCreate() {
         super.onCreate()
         shared = this
+
+        progressText.postValue("Initializing SDK...")
+        isLoading.postValue(true)
         SDKInitialization.initVCX { error ->
             if (error == null) {
                 Log.d("App", "onCreate: sdk initialized")
@@ -19,6 +24,8 @@ class App: Application() {
             } else {
                 Log.e("App", "onCreate: sdk initialization failed ($error)")
                 sdkInitialized.postValue(false)
+                isLoading.postValue(false)
+                progressText.postValue("SDK Failed")
             }
         }
     }

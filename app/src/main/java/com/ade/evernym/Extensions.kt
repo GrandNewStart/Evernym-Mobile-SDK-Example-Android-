@@ -71,6 +71,10 @@ fun String.handleBase64Scheme(): String {
     }
 }
 
+fun String.decodeBase64(): String {
+    return String(Base64.getDecoder().decode(this))
+}
+
 fun printLog(tag: String, text: String) {
     val MAX_LEN = 2000
     val len = text.length
@@ -80,9 +84,12 @@ fun printLog(tag: String, text: String) {
         while(idx < len) {
             nextIdx += MAX_LEN
             Log.d(tag, text.substring(idx, if (nextIdx > len) len else nextIdx))
+            Log.d(tag, "\n\n")
             idx = nextIdx
         }
     } else {
+        Log.d(tag, "\n\n")
         Log.d(tag, text)
+        Log.d(tag, "\n\n")
     }
 }

@@ -2,6 +2,7 @@ package com.ade.evernym.sdk.models
 
 import android.util.Log
 import com.ade.evernym.handleBase64Scheme
+import com.ade.evernym.printLog
 import com.ade.evernym.sdk.SDKStorage
 import com.evernym.sdk.vcx.connection.ConnectionApi
 import org.json.JSONObject
@@ -17,6 +18,20 @@ data class DIDConnection(
     var serialized: String,
     var timestamp: String = Date().toString()
 ) {
+
+    fun printDescription() {
+        JSONObject().apply {
+            put("id",id)
+            put("name",name)
+            put("logo",logo)
+            put("status",status)
+            put("pwDid",pwDid)
+            put("invitation",JSONObject(invitation))
+            put("serialized",JSONObject(serialized))
+            put("timestamp",timestamp)
+            printLog("--->", this.toString())
+        }
+    }
 
     fun getDescription(): String {
         return """
@@ -70,11 +85,19 @@ data class DIDConnection(
     companion object {
 
         fun getById(id: String): DIDConnection? {
-            return SDKStorage.connections.first { it.id == id }
+            return try {
+                SDKStorage.connections.first { it.id == id }
+            } catch(e: Exception) {
+                null
+            }
         }
 
         fun getByPwDid(pwDid: String): DIDConnection? {
-            return SDKStorage.connections.first { it.pwDid == pwDid }
+            return try {
+                SDKStorage.connections.first { it.pwDid == pwDid }
+            } catch(e: Exception) {
+                null
+            }
         }
 
         fun add(connection: DIDConnection) {
