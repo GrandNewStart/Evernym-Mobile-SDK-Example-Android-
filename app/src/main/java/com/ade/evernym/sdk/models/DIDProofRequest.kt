@@ -35,6 +35,7 @@ data class DIDProofRequest(
 
     fun deserialize(completionHandler: (Int?) -> Unit) {
         DisclosedProofApi.proofDeserialize(serialized).whenCompleteAsync { handle, error ->
+//        ProofApi.proofDeserialize(serialized).whenCompleteAsync { handle, error ->
             (error as? VcxException)?.let {
                 it.print("DIDProofRequest", "deserialize: ")
                 completionHandler(null)

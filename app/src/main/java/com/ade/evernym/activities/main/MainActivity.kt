@@ -57,7 +57,6 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         App.shared.isLoading.observe(this) { this.showLoadingScreen(it) }
         App.shared.progressText.observe(this) { this.setMessage(it) }
-
     }
 
     private fun awaitSDKInitialization() {

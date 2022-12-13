@@ -8,6 +8,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.ade.evernym.R
+import com.ade.evernym.handleBase64Scheme
 import com.ade.evernym.sdk.models.DIDConnection
 import com.ade.evernym.sdk.models.DIDMessage
 import com.bumptech.glide.Glide
@@ -25,7 +26,7 @@ class MessageAdapter(private val items: ArrayList<DIDMessage>) :
             val connection = DIDConnection.getByPwDid(message.pwDid)
             itemView.apply {
                 findViewById<TextView>(R.id.connectionTextView).apply {
-                    text = connection?.name ?: "Unknown Connection"
+                    text = (connection?.name ?: "Unknown Connection").handleBase64Scheme()
                 }
                 findViewById<TextView>(R.id.typeTextView).apply {
                     text = message.type

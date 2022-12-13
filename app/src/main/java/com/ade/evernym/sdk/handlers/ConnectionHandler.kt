@@ -16,7 +16,7 @@ import java.util.*
 object ConnectionHandler {
 
     fun getConnection(invitation: DIDInvitation, completionHandler: (DIDConnection?,String?)->Unit) {
-        Log.d("ConnectionHandler", "getConnection: (1)")
+        Log.d("ConnectionHandler", "getConnection")
         invitation.getExistingConnection { existingConnection, error ->
             error?.let {
                 Log.e("ConnectionHandler", "getConnection: (1) $it")
@@ -24,18 +24,18 @@ object ConnectionHandler {
                 return@getExistingConnection
             }
             if (existingConnection == null) {
-                Log.d("ConnectionHandler", "getConnection: (2-1) no existing connection")
+                Log.d("ConnectionHandler", "getConnection: no existing connection")
                 createConnectionObject(invitation.message) { handle, error1 ->
                     error1?.let {
                         Log.e("ConnectionHandler", "getConnection: (2) $it")
                         completionHandler(null, it)
                         return@createConnectionObject
                     }
-                    ConnectionApi.connectionInviteDetails(handle!!, 0).whenComplete { details, error2 ->
+                    ConnectionApi.connectionInviteDetails(handle!!, 0).whenCompleteAsync { details, error2 ->
                         error2?.let {
                             Log.e("ConnectionHandler", "getConnection: (3) ${it.localizedMessage}")
                             completionHandler(null, it.localizedMessage)
-                            return@whenComplete
+                            return@whenCompleteAsync
                         }
                         val connectionJSON = JSONObject(details)
                         val name = connectionJSON.getStringOptional("label")
@@ -43,13 +43,13 @@ object ConnectionHandler {
                         if (name == null || logo == null) {
                             Log.e("ConnectionHandler", "getConnection: (4) no connection name, logo")
                             completionHandler(null, "no connection name, logo")
-                            return@whenComplete
+                            return@whenCompleteAsync
                         }
-                        ConnectionApi.connectionSerialize(handle).whenComplete{ serialized, error ->
+                        ConnectionApi.connectionSerialize(handle).whenCompleteAsync { serialized, error ->
                             error?.let {
                                 Log.e("ConnectionHandler", "getConnection: (5) ${it.localizedMessage}")
                                 completionHandler(null, it.localizedMessage)
-                                return@whenComplete
+                                return@whenCompleteAsync
                             }
                             val connection = DIDConnection(
                                 UUID.randomUUID().toString(),
@@ -66,18 +66,18 @@ object ConnectionHandler {
                     }
                 }
             } else {
-                Log.d("ConnectionHandler", "getConnection: (2-2) existing connection")
+                Log.d("ConnectionHandler", "getConnection: existing connection")
                 existingConnection.deserialize { handle ->
                     if (handle == null) {
                         Log.e("ConnectionHandler", "getConnection: (6) failed to deserialize connection")
                         completionHandler(null, "failed to deserialize connection")
                         return@deserialize
                     }
-                    ConnectionApi.connectionInviteDetails(handle, 0).whenComplete { details, error ->
+                    ConnectionApi.connectionInviteDetails(handle, 0).whenCompleteAsync { details, error ->
                         error?.let {
                             Log.e("ConnectionHandler", "getConnection: (6) failed to deserialize connection")
                             completionHandler(null, "failed to deserialize connection")
-                            return@whenComplete
+                            return@whenCompleteAsync
                         }
                         val connectionJSON = JSONObject(details)
                         val name = connectionJSON.getStringOptional("label")
@@ -85,19 +85,19 @@ object ConnectionHandler {
                         if (name == null || logo == null) {
                             Log.e("ConnectionHandler", "getConnection: (7) failed to get connection name, logo")
                             completionHandler(null, "failed to get connection name, logo")
-                            return@whenComplete
+                            return@whenCompleteAsync
                         }
-                        ConnectionApi.connectionSerialize(handle).whenComplete { serialized, error1 ->
+                        ConnectionApi.connectionSerialize(handle).whenCompleteAsync { serialized, error1 ->
                             error1?.let {
                                 Log.e("ConnectionHandler", "getConnection: (8) ${it.localizedMessage}")
                                 completionHandler(null, it.localizedMessage)
-                                return@whenComplete
+                                return@whenCompleteAsync
                             }
-                            ConnectionApi.connectionGetPwDid(handle).whenComplete { pwDid, error2 ->
+                            ConnectionApi.connectionGetPwDid(handle).whenCompleteAsync { pwDid, error2 ->
                                 error2?.let {
                                     Log.e("ConnectionHandler", "getConnection: (9) ${it.localizedMessage}")
                                     completionHandler(null, it.localizedMessage)
-                                    return@whenComplete
+                                    return@whenCompleteAsync
                                 }
                                 existingConnection.serialized = serialized
                                 existingConnection.name = name

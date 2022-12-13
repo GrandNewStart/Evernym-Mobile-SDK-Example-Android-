@@ -12,7 +12,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.ade.evernym.App
 import com.ade.evernym.R
 import com.ade.evernym.getJSONObjectOptional
 import com.ade.evernym.handleBase64Scheme
@@ -46,6 +45,7 @@ class ProofRequestActivity : AppCompatActivity() {
         intent.getStringExtra("id")?.let {
             DIDProofRequest.getById(it)?.let { proofRequest ->
                 this.proofRequest = proofRequest
+                this.proofRequest.printDescription()
                 this.title = proofRequest.name.handleBase64Scheme()
                 setupTextViews()
                 setupImageView()
@@ -55,8 +55,6 @@ class ProofRequestActivity : AppCompatActivity() {
             }
             finish()
         }
-        App.shared.isLoading.observe(this) { this.showLoadingScreen(it) }
-        App.shared.progressText.observe(this) { this.setMessage(it) }
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -89,6 +87,8 @@ class ProofRequestActivity : AppCompatActivity() {
             this.keys.clear()
             this.availableCredentials.keys().forEach { key -> this.keys.add(key) }
             this.selectedCredentials = JSONObject()
+            Log.d("---> (1)", keys.toString())
+            Log.d("---> (2)", this.availableCredentials.toString())
             for (key in this.availableCredentials.keys()) {
                 options.getJSONArray(key).getJSONObjectOptional(0)?.let {
                     val referent = it.getString("referent")
@@ -99,6 +99,7 @@ class ProofRequestActivity : AppCompatActivity() {
                     this.selectedCredentials.put(key, value)
                 }
             }
+            Log.d("---> (3)", this.selectedCredentials.toString())
             this.setAdapter()
         }
     }
@@ -137,6 +138,9 @@ class ProofRequestActivity : AppCompatActivity() {
 
     private fun showAlert(key: String) {
         val credentialOptions = this.availableCredentials.getJSONArray(key)
+        if (credentialOptions.length() == 0) {
+            return
+        }
         var selectedCredential: JSONObject? = null
         val proofRecyclerView = RecyclerView(this).apply {
             layoutParams = ViewGroup.LayoutParams(
@@ -146,7 +150,8 @@ class ProofRequestActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@ProofRequestActivity).apply {
                 orientation = LinearLayoutManager.VERTICAL
             }
-            val selectedReferent = this@ProofRequestActivity.selectedCredentials.getJSONObject(key).getString("referent")
+            val selectedReferent = this@ProofRequestActivity.selectedCredentials.getJSONObject(key)
+                .getString("referent")
             adapter = ProofAdapter(credentialOptions, selectedReferent).apply {
                 onItemClick = { selectedCredential = it }
             }
@@ -170,15 +175,15 @@ class ProofRequestActivity : AppCompatActivity() {
     }
 
     private fun share() {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Sharing proofs...")
+        showLoadingScreen(true)
+        setMessage("Sharing proofs...")
         val connection = DIDConnection.getById(this.proofRequest.connectionId)!!
         ConnectionHandler.acceptConnection(connection) { _, error1 ->
             error1?.let {
                 Log.e("ProofRequestActivity", "setupButtons: (1) $it")
                 runOnUiThread {
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Failed to share proofs")
+                    this@ProofRequestActivity.showLoadingScreen(false)
+                    this@ProofRequestActivity.setMessage("Failed to share proofs")
                     Toast.makeText(this, "Failed to share proofs", Toast.LENGTH_SHORT).show()
                 }
                 return@acceptConnection
@@ -190,16 +195,16 @@ class ProofRequestActivity : AppCompatActivity() {
                 error2?.let {
                     Log.e("ProofRequestActivity", "setupButtons: (2) $it")
                     runOnUiThread {
-                        App.shared.isLoading.postValue(false)
-                        App.shared.progressText.postValue("Failed to share proofs")
+                        this@ProofRequestActivity.showLoadingScreen(false)
+                        this@ProofRequestActivity.setMessage("Failed to share proofs")
                         Toast.makeText(this, "Failed to share proofs", Toast.LENGTH_SHORT).show()
                     }
                     return@acceptProofRequest
                 }
                 DIDProofRequest.delete(this.proofRequest)
                 runOnUiThread {
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Proof shared")
+                    this@ProofRequestActivity.showLoadingScreen(false)
+                    this@ProofRequestActivity.setMessage("Proof shared")
                     Toast.makeText(this, "Proof shared", Toast.LENGTH_SHORT).show()
                     finish()
                 }
@@ -208,21 +213,24 @@ class ProofRequestActivity : AppCompatActivity() {
     }
 
     private fun reject() {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Rejecting proof request...")
-        ProofRequestHandler.rejectProofRequest(this.proofRequest) { error ->
-            runOnUiThread {
-                error?.let {
-                    Log.e("ProofRequestActivity", "setupButtons: $it")
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Failed to reject proof request")
-                    return@runOnUiThread
-                }
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Proof request rejected")
-                finish()
-            }
-        }
+//        showLoadingScreen(true)
+//        setMessage("Rejecting proof request...")
+//        ProofRequestHandler.rejectProofRequest(this.proofRequest) { error ->
+//            runOnUiThread {
+//                error?.let {
+//                    Log.e("ProofRequestActivity", "setupButtons: $it")
+//                    this@ProofRequestActivity.showLoadingScreen(false)
+//                    this@ProofRequestActivity.setMessage("Failed to reject proof request")
+//                    return@runOnUiThread
+//                }
+//                this@ProofRequestActivity.showLoadingScreen(false)
+//                this@ProofRequestActivity.setMessage("Proof request rejected")
+//                finish()
+//            }
+//        }
+
+        DIDProofRequest.delete(this.proofRequest)
+        finish()
     }
 
 }

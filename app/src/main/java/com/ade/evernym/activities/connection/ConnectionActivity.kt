@@ -9,7 +9,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.ade.evernym.App
 import com.ade.evernym.R
 import com.ade.evernym.handleBase64Scheme
 import com.ade.evernym.sdk.handlers.ConnectionHandler
@@ -44,8 +43,6 @@ class ConnectionActivity : AppCompatActivity() {
             }
             finish()
         }
-        App.shared.isLoading.observe(this) { this.showLoadingScreen(it) }
-        App.shared.progressText.observe(this) { this.setMessage(it) }
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -82,64 +79,60 @@ class ConnectionActivity : AppCompatActivity() {
             acceptButton.visibility = View.GONE
             rejectButton.visibility = View.VISIBLE
             rejectButton.text = "Disconnect"
-            rejectButton.setOnClickListener {
-                runOnUiThread {
-                    DIDConnection.delete(connection)
-                    finish()
-                }
-            }
+            rejectButton.setOnClickListener { this.reject() }
         }
     }
 
     private fun showLoadingScreen(show: Boolean) {
-        runOnUiThread {
-            loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
-        }
+        loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
     }
 
     private fun setMessage(message: String?) {
-        runOnUiThread {
-            progressTextView.text = message
-        }
+        progressTextView.text = message
     }
 
     private fun accept() {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Connecting...")
+        showLoadingScreen(true)
+        setMessage("Connecting...")
         ConnectionHandler.acceptConnection(connection) { updatedConnection, error ->
-            runOnUiThread {
-                error?.let {
+            error?.let {
+                runOnUiThread {
                     Toast.makeText(this, "Connection failed", Toast.LENGTH_SHORT).show()
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Connection failed")
-                    Log.e("ConnectionActivity", "setupButtons: $error")
-                    return@runOnUiThread
+                    this@ConnectionActivity.showLoadingScreen(false)
+                    this@ConnectionActivity.setMessage("Connection failed")
                 }
-                Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show()
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Connection success")
-                this.connection = updatedConnection!!
-                setupTextViews()
-                setupButtons()
-                showLoadingScreen(false)
+                Log.e("ConnectionActivity", "setupButtons: $error")
+                return@acceptConnection
             }
+            runOnUiThread {
+                Toast.makeText(this, "Connected", Toast.LENGTH_SHORT).show()
+                this@ConnectionActivity.showLoadingScreen(false)
+                this@ConnectionActivity.setMessage("Connection success")
+            }
+            this.connection = updatedConnection!!
+            setupTextViews()
+            setupButtons()
+            showLoadingScreen(false)
         }
     }
 
     private fun reject() {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Deleting...")
+        showLoadingScreen(true)
+        setMessage("Deleting...")
         ConnectionHandler.deleteConnection(this.connection) { error ->
-            runOnUiThread {
-                error?.let {
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Connection delete failed")
-                    Log.e("ConnectionActivity", it)
-                    return@runOnUiThread
+            error?.let {
+                runOnUiThread {
+                    this@ConnectionActivity.showLoadingScreen(false)
+                    this@ConnectionActivity.setMessage("Connection delete failed")
+                    Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
                 }
+                Log.e("ConnectionActivity", it)
+                return@deleteConnection
+            }
+            runOnUiThread {
                 Toast.makeText(this, "Connection deleted", Toast.LENGTH_SHORT).show()
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Connection deleted")
+                this@ConnectionActivity.showLoadingScreen(false)
+                this@ConnectionActivity.setMessage("Connection deleted")
                 finish()
             }
         }

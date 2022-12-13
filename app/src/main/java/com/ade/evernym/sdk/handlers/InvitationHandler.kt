@@ -14,6 +14,8 @@ import java.util.*
 object InvitationHandler {
 
     fun getInvitation(url: String, completionHandler: (invitation: DIDInvitation?, error: String?)->Unit) {
+        Log.d("InvitationHandler", "getInvitation: $url")
+
         if (!URLUtil.isValidUrl(url)) {
             completionHandler(null, "url not valid")
             return
@@ -55,13 +57,14 @@ object InvitationHandler {
     }
 
     private fun getAttachment(message: String, completionHandler: (attachment: DIDMessageAttachment?)->Unit) {
+        Log.d("InvitationHandler", "getAttachment")
         UtilsApi.vcxExtractAttachedMessage(message).whenCompleteAsync { extraction, error ->
             (error as? VcxException)?.let {
                 if (it.sdkErrorCode != 1100) {
-                    it.print("InvitationHandler", "getAttachment: (1)")
-                    completionHandler(null)
-                    return@whenCompleteAsync
+                    it.print("InvitationHandler", "getAttachment: (1-1)")
                 }
+                completionHandler(null)
+                return@whenCompleteAsync
             }
             val attachment = JSONObject(extraction)
             val type = attachment.getStringOptional("@type")

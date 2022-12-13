@@ -48,15 +48,15 @@ data class DIDConnection(
     }
 
     fun deserialize(completionHandler: (Int?)->Unit) {
-        ConnectionApi.connectionDeserialize(serialized).whenComplete { handle, error ->
+        ConnectionApi.connectionDeserialize(serialized).whenCompleteAsync { handle, error ->
             error?.let {
                 Log.e("DIDConnection", "deserialize: ${error.localizedMessage}")
                 completionHandler(null)
-                return@whenComplete
+                return@whenCompleteAsync
             }
             handle?.let {
                 completionHandler(it)
-                return@whenComplete
+                return@whenCompleteAsync
             }
         }
     }

@@ -19,13 +19,8 @@ object ProofRequestHandler {
         attachment: DIDMessageAttachment,
         completionHandler: (DIDProofRequest?, String?) -> Unit
     ) {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Fetching proof request...")
-
         if (!attachment.isProofAttachment()) {
             Log.e("ProofRequestHandler", "getProofRequest: (1) attachment is not proof request")
-            App.shared.isLoading.postValue(false)
-            App.shared.progressText.postValue("Failed to fetch proof request")
             completionHandler(null, "attachment is not proof request")
             return
         }
@@ -35,16 +30,12 @@ object ProofRequestHandler {
         ).whenCompleteAsync { handle, error1 ->
             (error1 as? VcxException)?.let {
                 it.print("ProofRequestHandler", "getProofRequest: (2)")
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Failed to fetch proof request")
                 completionHandler(null, it.localizedMessage)
                 return@whenCompleteAsync
             }
             DisclosedProofApi.proofSerialize(handle).whenCompleteAsync { serialized, error2 ->
                 (error2 as? VcxException)?.let {
                     it.print("ProofRequestHandler", "getProofRequest: (3)")
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Failed to fetch proof request")
                     completionHandler(null, it.localizedMessage)
                     return@whenCompleteAsync
                 }
@@ -54,12 +45,8 @@ object ProofRequestHandler {
                         "ProofRequestHandler",
                         "getProofRequest: (4) failed to create proof request"
                     )
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Failed to fetch proof request")
                     completionHandler(null, "failed to create proof request")
                 } else {
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue(null)
                     completionHandler(proofRequest, null)
                 }
             }
@@ -70,30 +57,18 @@ object ProofRequestHandler {
         proofRequest: DIDProofRequest,
         completionHandler: (String?, String?) -> Unit
     ) {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Retrieving credentials...")
-
-        proofRequest.deserialize { handle ->
-            if (handle == null) {
-                Log.d(
-                    "ProofRequestHandler",
-                    "retrieveCredentials: (1) failed to deserialize proof request"
-                )
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Failed to retrieve credentials")
+        DisclosedProofApi.proofDeserialize(proofRequest.serialized).whenCompleteAsync { handle, error1 ->
+            (error1 as? VcxException)?.let {
+                it.print("ProofRequestHandler", "retrieveCredentials: (1)")
                 completionHandler(null, "failed to deserialize proof request")
-                return@deserialize
+                return@whenCompleteAsync
             }
             DisclosedProofApi.proofRetrieveCredentials(handle).whenCompleteAsync { creds, error ->
                 (error as? VcxException)?.let {
                     it.print("ProofRequestHandler", "retrieveCredentials: (2)")
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Failed to fetch proof request")
                     completionHandler("ProofRequestHandler", it.localizedMessage)
                     return@whenCompleteAsync
                 }
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue(null)
                 completionHandler(creds, null)
             }
         }
@@ -119,26 +94,19 @@ object ProofRequestHandler {
         proofRequest: DIDProofRequest,
         completionHandler: (JSONObject?, String?) -> Unit
     ) {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Extracting credential options...")
-
         retrieveCredentials(proofRequest) { retrievedCredentials, error1 ->
             error1?.let {
                 Log.e("ProofRequestHandler", "getCredentialOptions: (1) $it")
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Failed to extract credential options")
                 completionHandler(null, it)
                 return@let
             }
-
+            Log.d("--->", retrievedCredentials!!)
             val attrs = JSONObject(retrievedCredentials!!).getJSONObjectOptional("attrs")
             if (attrs == null) {
                 Log.e(
                     "ProofRequestHandler",
                     "getCredentialOptions: (2) failed to serialize retrieved credentials"
                 )
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Failed to extract credential options")
                 completionHandler(null, "failed to serialize retrieved credentials")
                 return@retrieveCredentials
             }
@@ -206,17 +174,12 @@ object ProofRequestHandler {
         attributes: JSONObject,
         completionHandler: (String?) -> Unit
     ) {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Sharing proofs...")
-
         val connection = DIDConnection.getById(proofRequest.connectionId)
         if (connection == null) {
             Log.e(
                 "ProofRequestHandler",
                 "acceptProofRequest: (1) cannot find connection by id(${proofRequest.connectionId})"
             )
-            App.shared.isLoading.postValue(false)
-            App.shared.progressText.postValue("Failed to share proofs")
             completionHandler("cannot find connection by id(${proofRequest.connectionId})")
             return
         }
@@ -226,8 +189,6 @@ object ProofRequestHandler {
                     "ProofRequestHandler",
                     "acceptProofRequest: (2) failed to deserialize connection"
                 )
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Failed to share proofs")
                 completionHandler("failed to deserialize connection")
                 return@deserialize
             }
@@ -237,8 +198,6 @@ object ProofRequestHandler {
                         "ProofRequestHandler",
                         "acceptProofRequest: (3) failed to deserialize proof request"
                     )
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Failed to share proofs")
                     completionHandler("failed to deserialize proof request")
                     return@deserialize
                 }
@@ -246,8 +205,6 @@ object ProofRequestHandler {
                     .whenComplete { retrievedCredentials, error1 ->
                         (error1 as? VcxException)?.let {
                             it.print("ProofRequestHandler", "acceptProofRequest: (4)")
-                            App.shared.isLoading.postValue(false)
-                            App.shared.progressText.postValue("Failed to share proofs")
                             completionHandler(it.localizedMessage)
                             return@whenComplete
                         }
@@ -262,8 +219,6 @@ object ProofRequestHandler {
                         ).whenComplete { _, error2 ->
                             (error2 as? VcxException)?.let {
                                 it.print("ProofRequestHandler", "acceptProofRequest: (5)")
-                                App.shared.isLoading.postValue(false)
-                                App.shared.progressText.postValue("Failed to share proofs")
                                 completionHandler(it.localizedMessage)
                                 return@whenComplete
                             }
@@ -273,14 +228,10 @@ object ProofRequestHandler {
                             ).whenComplete { _, error3 ->
                                 (error3 as? VcxException)?.let {
                                     it.print("ProofRequestHandler", "acceptProofRequest: (6)")
-                                    App.shared.isLoading.postValue(false)
-                                    App.shared.progressText.postValue("Failed to share proofs")
                                     completionHandler(it.localizedMessage)
                                     return@whenComplete
                                 }
                                 DIDProofRequest.delete(proofRequest)
-                                App.shared.isLoading.postValue(false)
-                                App.shared.progressText.postValue(null)
                                 completionHandler(null)
                             }
                         }

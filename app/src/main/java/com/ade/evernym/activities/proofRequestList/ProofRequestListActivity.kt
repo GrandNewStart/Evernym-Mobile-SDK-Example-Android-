@@ -31,6 +31,7 @@ class ProofRequestListActivity: AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun setupRecyclerView() {
+        this@ProofRequestListActivity.title = "ProofRequests(${SDKStorage.proofRequests.count()})"
         recyclerView.apply {
             adapter = ProofRequestAdapter().apply {
                 onItemClick = { position ->

@@ -32,6 +32,7 @@ class ConnectionListActivity: AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun setupRecyclerView() {
         recyclerView.apply {
+            this@ConnectionListActivity.title = "Connections(${SDKStorage.connections.count()})"
             adapter = ConnectionAdapter().apply {
                 onItemClick = { position ->
                     val intent = Intent(this@ConnectionListActivity, ConnectionActivity::class.java).apply {

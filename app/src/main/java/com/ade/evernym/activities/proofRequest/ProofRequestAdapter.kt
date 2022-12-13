@@ -7,6 +7,8 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.ade.evernym.R
+import com.ade.evernym.getJSONObjectOptional
+import com.ade.evernym.handleBase64Scheme
 import com.ade.evernym.sdk.models.DIDCredential
 import com.bumptech.glide.Glide
 import org.json.JSONObject
@@ -21,18 +23,24 @@ class ProofRequestAdapter(
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind(position: Int) {
-            val item = proof.getJSONObject(keys[position])
-            val value = item.getString("value")
-            val credential = DIDCredential.getByReferent(item.getString("referent"))!!
-            itemView.findViewById<TextView>(R.id.itemTextView).apply {
-                text = value
+            val item = proof.getJSONObjectOptional(keys[position])
+            itemView.apply {
+                val textView = findViewById<TextView>(R.id.itemTextView)
+                textView.text = "Missing"
+                textView.setTextColor(context.getColor(R.color.red))
+                if (item != null) {
+                    textView.text = (item.getString("value") ?: "Unknown").handleBase64Scheme()
+                    textView.setTextColor(context.getColor(R.color.black))
+                    item.getString("referent")?.let { referent ->
+                        val credential = DIDCredential.getByReferent(referent)!!
+                        Glide.with(itemView)
+                            .load(credential.connectionLogo)
+                            .placeholder(R.drawable.ic_baseline_image_24)
+                            .into(findViewById(R.id.imageView))
+                    }
+                }
+                setOnClickListener { onItemClick(position) }
             }
-            Glide.with(itemView)
-                .load(credential.connectionLogo)
-                .placeholder(R.drawable.ic_baseline_image_24)
-                .into(itemView.findViewById(R.id.imageView))
-
-            itemView.setOnClickListener { onItemClick(position) }
         }
 
     }

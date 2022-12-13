@@ -32,6 +32,7 @@ class CredentialListActivity: AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun setupRecyclerView() {
         recyclerView.apply {
+            this@CredentialListActivity.title = "Credentials(${SDKStorage.credentials.count()})"
             adapter = CredentialAdapter().apply {
                 onItemClick = { position ->
                     startActivity(

@@ -109,53 +109,54 @@ class CredentialActivity: AppCompatActivity() {
     }
 
     private fun showLoadingScreen(show: Boolean) {
-        runOnUiThread{
-            loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
-        }
+        loadingScreen.visibility = if (show) View.VISIBLE else View.GONE
     }
 
     private fun setMessage(message: String?) {
-        runOnUiThread {
-            this.progressTextView.text = message
-        }
+        this.progressTextView.text = message
     }
 
     private fun accept() {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Accepting credential...")
+        showLoadingScreen(true)
+        setMessage("Accepting credential...")
         CredentialHandler.acceptCredential(this.credential) { credential, error ->
-            runOnUiThread {
-                error?.let {
+            error?.let {
+                runOnUiThread {
                     Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Credential acceptance failed")
-                    return@runOnUiThread
+                    this@CredentialActivity.showLoadingScreen(false)
+                    this@CredentialActivity.setMessage("Credential acceptance failed")
                 }
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Credential accepted")
-                this.credential = credential!!
-                this.setupTextViews()
-                this.setupButtons()
+                return@acceptCredential
             }
+            runOnUiThread {
+                this@CredentialActivity.showLoadingScreen(false)
+                this@CredentialActivity.setMessage("Credential accepted")
+                Toast.makeText(this, "Accepted", Toast.LENGTH_SHORT).show()
+            }
+            this.credential = credential!!
+            this.setupTextViews()
+            this.setupButtons()
         }
     }
 
     private fun reject() {
-        App.shared.isLoading.postValue(true)
-        App.shared.progressText.postValue("Deleting credential...")
+        showLoadingScreen(true)
+        setMessage("Deleting credential...")
         CredentialHandler.rejectCredential(this.credential) { error ->
-            runOnUiThread {
-                error?.let {
+            error?.let {
+                runOnUiThread {
                     Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                    App.shared.isLoading.postValue(false)
-                    App.shared.progressText.postValue("Credential delete failed")
-                    return@runOnUiThread
+                    this@CredentialActivity.showLoadingScreen(false)
+                    this@CredentialActivity.setMessage("Credential delete failed")
                 }
-                Toast.makeText(this, "Failed", Toast.LENGTH_SHORT).show()
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("Credential deleted")
-                finish()
+                return@rejectCredential
             }
+            runOnUiThread {
+                Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show()
+                this@CredentialActivity.showLoadingScreen(false)
+                this@CredentialActivity.setMessage("Credential deleted")
+            }
+            finish()
         }
     }
 
