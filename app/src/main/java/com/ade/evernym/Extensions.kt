@@ -3,13 +3,14 @@ package com.ade.evernym
 import android.util.Log
 import com.evernym.sdk.vcx.VcxException
 import org.json.JSONArray
+import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
 
 fun JSONObject.getStringOptional(key: String): String? {
     return try {
         getString(key)
-    } catch(e: Exception) {
+    } catch(e: JSONException) {
         null
     }
 }
@@ -17,7 +18,7 @@ fun JSONObject.getStringOptional(key: String): String? {
 fun JSONObject.getJSONObjectOptional(key: String): JSONObject? {
     return try {
         getJSONObject(key)
-    } catch(e: Exception) {
+    } catch(e: JSONException) {
         null
     }
 }
@@ -25,7 +26,7 @@ fun JSONObject.getJSONObjectOptional(key: String): JSONObject? {
 fun JSONObject.getJSONArrayOptional(key: String): JSONArray? {
     return try {
         getJSONArray(key)
-    } catch(e: Exception) {
+    } catch(e: JSONException) {
         null
     }
 }
@@ -36,7 +37,7 @@ fun JSONObject.getStringArray(key: String): ArrayList<String> {
     for (i in 0 until array.length()) {
         try {
             result.add(array.getString(i))
-        } catch(e: Exception) {}
+        } catch(e: JSONException) {}
     }
     return result
 }
@@ -44,7 +45,7 @@ fun JSONObject.getStringArray(key: String): ArrayList<String> {
 fun JSONArray.getJSONObjectOptional(index: Int): JSONObject? {
     return try {
         getJSONObject(index)
-    } catch(e: Exception) {
+    } catch(e: JSONException) {
         null
     }
 }

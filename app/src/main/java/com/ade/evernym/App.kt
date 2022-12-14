@@ -18,14 +18,15 @@ class App: Application() {
         progressText.postValue("Initializing SDK...")
         isLoading.postValue(true)
         SDKInitialization.initVCX { error ->
+            this@App.isLoading.postValue(false)
             if (error == null) {
                 Log.d("App", "onCreate: sdk initialized")
-                sdkInitialized.postValue(true)
+                this@App.sdkInitialized.postValue(true)
+                this@App.progressText.postValue("SDK Ready")
             } else {
                 Log.e("App", "onCreate: sdk initialization failed ($error)")
-                sdkInitialized.postValue(false)
-                isLoading.postValue(false)
-                progressText.postValue("SDK Failed")
+                this@App.sdkInitialized.postValue(false)
+                this@App.progressText.postValue("SDK Failed")
             }
         }
     }

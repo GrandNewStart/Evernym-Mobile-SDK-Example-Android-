@@ -63,12 +63,8 @@ class MainActivity : AppCompatActivity() {
         App.shared.sdkInitialized.observe(this) { initialized ->
             this.sdkInitialized = initialized
             if (initialized) {
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("SDK Ready")
                 Toast.makeText(this, "SDK Ready", Toast.LENGTH_SHORT).show()
             } else {
-                App.shared.isLoading.postValue(false)
-                App.shared.progressText.postValue("SDK Failed")
                 Toast.makeText(this, "SDK Failed", Toast.LENGTH_SHORT).show()
             }
         }
