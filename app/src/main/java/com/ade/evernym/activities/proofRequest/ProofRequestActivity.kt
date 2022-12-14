@@ -45,7 +45,6 @@ class ProofRequestActivity : AppCompatActivity() {
         intent.getStringExtra("id")?.let {
             DIDProofRequest.getById(it)?.let { proofRequest ->
                 this.proofRequest = proofRequest
-                this.proofRequest.printDescription()
                 this.title = proofRequest.name.handleBase64Scheme()
                 setupTextViews()
                 setupImageView()
@@ -87,8 +86,8 @@ class ProofRequestActivity : AppCompatActivity() {
             this.keys.clear()
             this.availableCredentials.keys().forEach { key -> this.keys.add(key) }
             this.selectedCredentials = JSONObject()
-            Log.d("---> (1)", keys.toString())
-            Log.d("---> (2)", this.availableCredentials.toString())
+            Log.d("---> (3)", keys.toString())
+            Log.d("---> (4)", this.availableCredentials.toString())
             for (key in this.availableCredentials.keys()) {
                 options.getJSONArray(key).getJSONObjectOptional(0)?.let {
                     val referent = it.getString("referent")

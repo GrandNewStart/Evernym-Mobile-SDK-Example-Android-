@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.ade.evernym.R
+import com.ade.evernym.handleBase64Scheme
 import com.bumptech.glide.Glide
 import org.json.JSONArray
 import org.json.JSONObject
@@ -23,8 +24,8 @@ class ProofAdapter(private val items: JSONArray, private var selectedReferent: S
             val credentialName = item.getString("credentialName")
             val value = item.getString("value")
             itemView.apply {
-                findViewById<TextView>(R.id.titleTextView).text = credentialName
-                findViewById<TextView>(R.id.detailTextView).text = value
+                findViewById<TextView>(R.id.titleTextView).text = credentialName.handleBase64Scheme()
+                findViewById<TextView>(R.id.detailTextView).text = value.handleBase64Scheme()
                 Glide.with(this)
                     .load(logo)
                     .placeholder(R.drawable.ic_baseline_image_24)

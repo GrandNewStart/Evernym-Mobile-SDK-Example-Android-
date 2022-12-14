@@ -94,13 +94,14 @@ object ProofRequestHandler {
         proofRequest: DIDProofRequest,
         completionHandler: (JSONObject?, String?) -> Unit
     ) {
+        printLog("---> (0)", proofRequest.serialized)
         retrieveCredentials(proofRequest) { retrievedCredentials, error1 ->
             error1?.let {
                 Log.e("ProofRequestHandler", "getCredentialOptions: (1) $it")
                 completionHandler(null, it)
                 return@let
             }
-            Log.d("--->", retrievedCredentials!!)
+            printLog("---> (1)", retrievedCredentials!!)
             val attrs = JSONObject(retrievedCredentials!!).getJSONObjectOptional("attrs")
             if (attrs == null) {
                 Log.e(
@@ -202,11 +203,11 @@ object ProofRequestHandler {
                     return@deserialize
                 }
                 DisclosedProofApi.proofRetrieveCredentials(proofRequestHandle)
-                    .whenComplete { retrievedCredentials, error1 ->
+                    .whenCompleteAsync { retrievedCredentials, error1 ->
                         (error1 as? VcxException)?.let {
                             it.print("ProofRequestHandler", "acceptProofRequest: (4)")
                             completionHandler(it.localizedMessage)
-                            return@whenComplete
+                            return@whenCompleteAsync
                         }
                         val credentials = DIDProofRequest.createSelectedCredentialObject(
                             retrievedCredentials,
@@ -216,20 +217,20 @@ object ProofRequestHandler {
                             proofRequestHandle,
                             credentials.toString(),
                             "{}"
-                        ).whenComplete { _, error2 ->
+                        ).whenCompleteAsync { _, error2 ->
                             (error2 as? VcxException)?.let {
                                 it.print("ProofRequestHandler", "acceptProofRequest: (5)")
                                 completionHandler(it.localizedMessage)
-                                return@whenComplete
+                                return@whenCompleteAsync
                             }
                             DisclosedProofApi.proofSend(
                                 proofRequestHandle,
                                 connectionHandle
-                            ).whenComplete { _, error3 ->
+                            ).whenCompleteAsync { _, error3 ->
                                 (error3 as? VcxException)?.let {
                                     it.print("ProofRequestHandler", "acceptProofRequest: (6)")
                                     completionHandler(it.localizedMessage)
-                                    return@whenComplete
+                                    return@whenCompleteAsync
                                 }
                                 DIDProofRequest.delete(proofRequest)
                                 completionHandler(null)
@@ -284,11 +285,11 @@ object ProofRequestHandler {
                     connectionHandle,
                     "",
                     null
-                ).whenComplete { _, error ->
+                ).whenCompleteAsync { _, error ->
                     (error as? VcxException)?.let {
                         it.print("ProofRequestHandler", "rejectProofRequest: (4)")
                         completionHandler(it.localizedMessage)
-                        return@whenComplete
+                        return@whenCompleteAsync
                     }
                     DIDProofRequest.delete(proofRequest)
                     completionHandler(null)

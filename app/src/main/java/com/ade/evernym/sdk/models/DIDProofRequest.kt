@@ -29,7 +29,7 @@ data class DIDProofRequest(
             put("connectionLogo", connectionLogo)
             put("serialized", JSONObject(serialized))
             put("timestamp", timestamp)
-            Log.d("--->", this.toString())
+            printLog("--->", this.toString())
         }
     }
 

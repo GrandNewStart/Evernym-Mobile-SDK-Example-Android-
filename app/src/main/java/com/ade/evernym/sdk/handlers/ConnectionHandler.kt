@@ -188,17 +188,17 @@ object ConnectionHandler {
                 completionHandler(null, "failed to deserialize connection")
                 return@deserialize
             }
-            ConnectionApi.vcxConnectionConnect(handle, "{}").whenComplete { _, error ->
+            ConnectionApi.vcxConnectionConnect(handle, "{}").whenCompleteAsync { _, error ->
                 error?.let {
                     Log.e("ConnectionHandler", "connect: (2) ${it.localizedMessage}")
                     completionHandler(null, it.localizedMessage)
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
-                ConnectionApi.connectionSerialize(handle).whenComplete { serialized, error ->
+                ConnectionApi.connectionSerialize(handle).whenCompleteAsync { serialized, error ->
                     error?.let {
                         Log.e("ConnectionHandler", "connect: (3) ${it.localizedMessage}")
                         completionHandler(null, it.localizedMessage)
-                        return@whenComplete
+                        return@whenCompleteAsync
                     }
                     connection.serialized = serialized
                     DIDConnection.update(connection)
@@ -266,17 +266,17 @@ object ConnectionHandler {
                 count++
                 Thread.sleep(1000)
             }
-            ConnectionApi.connectionSerialize(handle).whenComplete { serialized, error ->
+            ConnectionApi.connectionSerialize(handle).whenCompleteAsync { serialized, error ->
                 error?.let {
                     Log.e("ConnectionHandler", "awaitConnectionComplete: (3) ${it.localizedMessage}")
                     completionHandler(null, it.localizedMessage)
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
-                ConnectionApi.connectionGetPwDid(handle).whenComplete { pwDid, error ->
+                ConnectionApi.connectionGetPwDid(handle).whenCompleteAsync { pwDid, error ->
                     error?.let {
                         Log.e("ConnectionHandler", "awaitConnectionComplete: (4) ${it.localizedMessage}")
                         completionHandler(null, it.localizedMessage)
-                        return@whenComplete
+                        return@whenCompleteAsync
                     }
                     connection.serialized = serialized
                     connection.pwDid = pwDid

@@ -18,13 +18,13 @@ object MessageHandler {
     @OptIn(DelicateCoroutinesApi::class)
     fun downloadPendingMessages(completionHandler: (ArrayList<DIDMessage>, String?)->Unit) {
         val result = arrayListOf<DIDMessage>()
-        UtilsApi.vcxGetMessages("MS-103", null, null).whenComplete { string, error ->
+        UtilsApi.vcxGetMessages("MS-103", null, null).whenCompleteAsync { string, error ->
             (error as? VcxException)?.let {
                 it.print("MessageHandler", "downloadPendingMessages")
                 GlobalScope.launch(Dispatchers.Main) {
                     completionHandler(result, it.localizedMessage)
                 }
-                return@whenComplete
+                return@whenCompleteAsync
             }
             val messages = JSONArray(string)
             for (i in 0 until messages.length()) {
@@ -47,11 +47,11 @@ object MessageHandler {
 
     fun update(pwDid: String, messageUid: String, completionHandler: (String?)->Unit) {
         val pwDidsJSon = """[{"pairwiseDID":"$pwDid","uids":["$messageUid"]}]"""
-        UtilsApi.vcxUpdateMessages("MS-106", pwDidsJSon).whenComplete { _, error ->
+        UtilsApi.vcxUpdateMessages("MS-106", pwDidsJSon).whenCompleteAsync { _, error ->
             (error as? VcxException)?.let {
                 it.print("MessageHandler", "update")
                 completionHandler(it.localizedMessage)
-                return@whenComplete
+                return@whenCompleteAsync
             }
             completionHandler(null)
         }

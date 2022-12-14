@@ -27,11 +27,15 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanIntentResult
 import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity() {
 
     private var sdkInitialized = false
+    private var backButtonCount = 0
 
     private val cameraButton: FloatingActionButton by lazy { findViewById(R.id.cameraButton) }
     private val messageTextView: TextView by lazy { findViewById(R.id.messageTextView) }
@@ -57,6 +61,21 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         App.shared.isLoading.observe(this) { this.showLoadingScreen(it) }
         App.shared.progressText.observe(this) { this.setMessage(it) }
+    }
+
+    override fun onBackPressed() {
+        if (this.backButtonCount == 0) {
+            this.backButtonCount++
+            Toast.makeText(this, "뒤로가기 한번 더 누르면 종료", Toast.LENGTH_SHORT).show()
+            CoroutineScope(Dispatchers.IO).launch {
+                Thread.sleep(2000L)
+                this@MainActivity.backButtonCount = 0
+            }
+            return
+        }
+        if (this.backButtonCount > 0) {
+            finish()
+        }
     }
 
     private fun awaitSDKInitialization() {

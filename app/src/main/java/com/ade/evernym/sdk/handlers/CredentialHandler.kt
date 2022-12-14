@@ -97,11 +97,11 @@ object CredentialHandler {
                 UUID.randomUUID().toString(),
                 connectionHandle,
                 message.uid
-            ).whenComplete { result, error1 ->
+            ).whenCompleteAsync { result, error1 ->
                 (error1 as? VcxException)?.let {
                     it.print("CredentialHandler", "getCredential: (2)")
                     completionHandler(null, it.localizedMessage)
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
                 val credentialOffer =
                     JSONObject(result.offer).getJSONObjectOptional("credential_offer")
@@ -111,19 +111,19 @@ object CredentialHandler {
                         "getCredential: (3): failed to get 'credential_offer"
                     )
                     completionHandler(null, "failed to get 'credential_offer")
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
                 val threadId = credentialOffer.getStringOptional("thread_id")
                 if (threadId == null) {
                     Log.e("CredentialHandler", "getCredential: (4): failed to get 'thread_id")
                     completionHandler(null, "failed to get 'thread_id")
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
                 val name = credentialOffer.getStringOptional("claim_name")
                 if (name == null) {
                     Log.e("CredentialHandler", "getCredential: (5): failed to get 'claim_name")
                     completionHandler(null, "failed to get 'claim_name")
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
                 val attrs = credentialOffer.getJSONObjectOptional("credential_attrs")
                 if (attrs == null) {
@@ -132,7 +132,7 @@ object CredentialHandler {
                         "getCredential: (6): failed to get 'credential_attrs"
                     )
                     completionHandler(null, "failed to get 'credential_attrs")
-                    return@whenComplete
+                    return@whenCompleteAsync
                 }
                 val attributesJSON = JSONArray()
                 for (key in attrs.keys()) {
@@ -145,11 +145,11 @@ object CredentialHandler {
                     }
                 }
                 CredentialApi.credentialSerialize(result.credential_handle)
-                    .whenComplete { serialized, error2 ->
+                    .whenCompleteAsync { serialized, error2 ->
                         (error2 as? VcxException)?.let {
                             it.print("CredentialHandler", "getCredential: (7)")
                             completionHandler(null, it.localizedMessage)
-                            return@whenComplete
+                            return@whenCompleteAsync
                         }
                         val credential = DIDCredential(
                             UUID.randomUUID().toString(),
@@ -209,18 +209,18 @@ object CredentialHandler {
                         credentialHandle,
                         connectionHandle,
                         0
-                    ).whenComplete { _, error1 ->
+                    ).whenCompleteAsync { _, error1 ->
                         (error1 as? VcxException)?.let {
                             it.print("CredentialHandler", "acceptCredential: (5)")
                             completionHandler(null, it.localizedMessage)
-                            return@whenComplete
+                            return@whenCompleteAsync
                         }
                         CredentialApi.credentialSerialize(credentialHandle)
-                            .whenComplete { serialized, error2 ->
+                            .whenCompleteAsync { serialized, error2 ->
                                 (error2 as? VcxException)?.let {
                                     it.print("CredentialHandler", "acceptCredential: (6)")
                                     completionHandler(null, it.localizedMessage)
-                                    return@whenComplete
+                                    return@whenCompleteAsync
                                 }
                                 credential.serialized = serialized
                                 DIDCredential.update(credential)
@@ -327,11 +327,11 @@ object CredentialHandler {
                     return@deserialize
                 }
                 CredentialApi.credentialReject(credentialHandle, connectionHandle, "")
-                    .whenComplete { _, error ->
+                    .whenCompleteAsync { _, error ->
                         (error as? VcxException)?.let {
                             it.print("CredentialHandler", "rejectCredential: (4)")
                             completionHandler(it.localizedMessage)
-                            return@whenComplete
+                            return@whenCompleteAsync
                         }
                         DIDCredential.delete(credential)
                         completionHandler(null)

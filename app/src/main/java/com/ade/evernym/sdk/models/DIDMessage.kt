@@ -1,6 +1,6 @@
 package com.ade.evernym.sdk.models
 
-import android.util.Log
+import com.ade.evernym.printLog
 import org.json.JSONObject
 
 data class DIDMessage(
@@ -16,7 +16,7 @@ data class DIDMessage(
             put("uid", uid)
             put("type", type)
             put("payload", JSONObject(payload))
-            Log.d("--->", this.toString())
+            printLog("--->", this.toString())
         }
     }
 
